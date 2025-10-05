@@ -33,42 +33,37 @@ const LoginPage = () => {
     setError(null);
 
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const { email, password, rememberMe } = formData;
-      const user = mockCredentials?.[email?.toLowerCase()];
-
-      if (!user || user?.password !== password) {
-        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      const res = await fetch('/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: formData.email, password: formData.password })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data?.detail || 'Invalid email or password.');
       }
+      const data = await res.json();
+      const access = data?.access;
+      const refresh = data?.refresh;
+      if (!access || !refresh) throw new Error('Unexpected login response.');
 
-      // Simulate successful authentication
-      const authToken = `mock_jwt_token_${Date.now()}`;
-      const userData = {
-        id: Math.floor(Math.random() * 1000),
-        email: email,
-        name: user?.name,
-        role: user?.role,
-        verified: true,
-        lastLogin: new Date()?.toISOString()
-      };
+      // Fetch user profile
+      const meRes = await fetch('/api/me/', {
+        headers: { 'Authorization': `Bearer ${access}` }
+      });
+      const meData = await meRes.json();
 
-      // Store authentication data
-      localStorage.setItem('authToken', authToken);
-      localStorage.setItem('userRole', user?.role);
-      localStorage.setItem('userData', JSON.stringify(userData));
-      
-      if (rememberMe) {
-        localStorage.setItem('rememberMe', 'true');
-      }
+      localStorage.setItem('authToken', access);
+      localStorage.setItem('refreshToken', refresh);
+      localStorage.setItem('userData', JSON.stringify(meData));
+      localStorage.setItem('userRole', meData?.role || 'donor');
+      if (formData.rememberMe) localStorage.setItem('rememberMe', 'true');
 
-      // Redirect based on user role
-      const dashboardPath = user?.role === 'recipient' ? '/recipient-dashboard' : '/donor-dashboard';
+      const dashboardPath = (meData?.role === 'recipient') ? '/recipient-dashboard' : '/donor-dashboard';
       navigate(dashboardPath, { replace: true });
 
     } catch (err) {
-      setError(err?.message);
+      setError(err?.message || 'Login failed');
     } finally {
       setLoading(false);
     }
