@@ -205,34 +205,48 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
+    if (!validateStep(currentStep)) return;
     setIsSubmitting(true);
-    
+    setErrors({});
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Mock registration success
-      console.log('Registration data:', formData);
-      
-      // Show success message and redirect
-      alert(`Account created successfully! Welcome to FoodBridge.\n\nMock credentials for testing:\nEmail: ${mockCredentials?.[formData?.userType]?.email}\nPassword: ${mockCredentials?.[formData?.userType]?.password}`);
-      
-      // Redirect based on user type
-      if (formData?.userType === 'restaurant') {
-        navigate('/donor-dashboard');
-      } else if (formData?.userType === 'ngo' || formData?.userType === 'volunteer') {
-        navigate('/recipient-dashboard');
-      } else {
-        navigate('/donor-dashboard');
+      const payload = {
+        username: formData.email,
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.fullName?.split(' ')?.slice(0, -1)?.join(' ') || formData.fullName,
+        last_name: formData.fullName?.split(' ')?.slice(-1)?.join(' ') || '',
+        role: formData.userType === 'ngo' || formData.userType === 'volunteer' ? 'recipient' : 'donor',
+        phone: formData.phone,
+        organization_name: formData.organizationName || '',
+      };
+
+      const res = await fetch('/api/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const message = typeof data === 'object' ? JSON.stringify(data) : 'Registration failed';
+        throw new Error(message);
       }
-      
+
+      const access = data?.access;
+      const refresh = data?.refresh;
+      const user = data?.user;
+      if (!access || !refresh || !user) throw new Error('Unexpected register response');
+
+      localStorage.setItem('authToken', access);
+      localStorage.setItem('refreshToken', refresh);
+      localStorage.setItem('userData', JSON.stringify(user));
+      localStorage.setItem('userRole', user?.role || 'donor');
+
+      const dashboardPath = (user?.role === 'recipient') ? '/recipient-dashboard' : '/donor-dashboard';
+      navigate(dashboardPath, { replace: true });
     } catch (error) {
       console.error('Registration error:', error);
-      setErrors({ submit: 'Registration failed. Please try again.' });
+      setErrors({ submit: error?.message || 'Registration failed. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
