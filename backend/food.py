@@ -14,7 +14,7 @@ CORS(app)
 
 # --- Configuration ---
 # Paste your Google Gemini API key here:
-GEMINI_API_KEY = "AIzaSyBK-2vS01ai7aAyJb2EjzWs2SJfYSvE7-c"
+GEMINI_API_KEY = ""
 
 if GEMINI_API_KEY == "YOUR_API_KEY_HERE" or not GEMINI_API_KEY:
     raise ValueError("❌ GEMINI_API_KEY not set. Please replace 'YOUR_API_KEY_HERE' with your actual key.")
@@ -124,4 +124,3 @@ if __name__ == "__main__":
     app.run(debug=True, port=5000)
 
 
-#AIzaSyBK-2vS01ai7aAyJb2EjzWs2SJfYSvE7-c
