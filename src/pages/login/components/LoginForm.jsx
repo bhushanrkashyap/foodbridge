@@ -4,15 +4,19 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
+import { supabase } from '../../../supabaseClient'; // Adjust path if needed
 
-const LoginForm = ({ onSubmit, loading = false, error = null }) => {
-  const navigate = useNavigate();
+const LoginForm = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
   const [formErrors, setFormErrors] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showSignUp, setShowSignUp] = useState(false);
+  const navigate = useNavigate();
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
@@ -49,17 +53,65 @@ const LoginForm = ({ onSubmit, loading = false, error = null }) => {
     return Object.keys(errors)?.length === 0;
   };
 
-  const handleSubmit = (e) => {
-    e?.preventDefault();
-    
-    if (validateForm()) {
-      onSubmit(formData);
-    }
-  };
-
   const handleForgotPassword = () => {
     // Navigate to forgot password or show modal
     console.log('Forgot password clicked');
+  };
+
+  // Supabase login handler
+  const handleSubmit = async (e) => {
+    e?.preventDefault();
+    setError(null);
+
+    if (validateForm()) {
+      setLoading(true);
+      // Authenticate with Supabase Auth
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password
+      });
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+      // Check if user exists in 'users' table
+      const { data: userData, error: userTableError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', formData.email)
+        .single();
+      if (userTableError || !userData) {
+        setShowSignUp(true);
+        setLoading(false);
+        return;
+      }
+      // User exists, navigate to donor dashboard
+      navigate('/donor-dashboard');
+      setLoading(false);
+    }
+  };
+
+  // Handle sign up and record user in database
+  const handleSignUp = async () => {
+    setLoading(true);
+    // Create user in Supabase Auth
+    const { data, error: signUpError } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password
+    });
+    if (signUpError) {
+      setError(signUpError.message);
+      setLoading(false);
+      return;
+    }
+    // Insert user into 'users' table
+    await supabase
+      .from('users')
+      .insert([{ email: formData.email, name: '', role: 'donor' }]); // Adjust fields as needed
+    setShowSignUp(false);
+    navigate('/dashboard');
+    setLoading(false);
   };
 
   return (
@@ -141,6 +193,25 @@ const LoginForm = ({ onSubmit, loading = false, error = null }) => {
             {loading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
+
+        {/* Show sign up option if user not found */}
+        {showSignUp && (
+          <div className="mt-4 text-center">
+            <p className="text-sm text-muted-foreground mb-2">
+              No account found. Would you like to create one?
+            </p>
+            <Button
+              type="button"
+              variant="primary"
+              fullWidth
+              loading={loading}
+              disabled={loading}
+              onClick={handleSignUp}
+            >
+              {loading ? 'Creating Account...' : 'Sign Up'}
+            </Button>
+          </div>
+        )}
 
         {/* Register Link */}
         <div className="text-center pt-4 border-t border-border">

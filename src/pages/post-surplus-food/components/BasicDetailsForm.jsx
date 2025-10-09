@@ -1,18 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
+import { supabase } from '../../../supabaseClient';
 
-const BasicDetailsForm = ({ formData, onFormChange, errors }) => {
+const BasicDetailsForm = ({ formData, onFormChange, errors, analysis, imageUrl }) => {
   const foodTypeOptions = [
-    { value: 'prepared-meals', label: 'Prepared Meals' },
-    { value: 'fresh-produce', label: 'Fresh Produce' },
-    { value: 'packaged-goods', label: 'Packaged Goods' },
-    { value: 'dairy-products', label: 'Dairy Products' },
-    { value: 'bakery-items', label: 'Bakery Items' },
-    { value: 'beverages', label: 'Beverages' },
-    { value: 'frozen-items', label: 'Frozen Items' },
-    { value: 'dry-goods', label: 'Dry Goods' }
-  ];
+  { value: 'prepared-meals', label: 'Prepared Meals' },
+  { value: 'non-perishable', label: 'Non-Perishable' },
+  { value: 'beverages', label: 'Beverages' },
+  { value: 'fresh-produce', label: 'Fresh Produce' },
+  { value: 'bakery-items', label: 'Bakery Items' },
+];
 
   const quantityUnitOptions = [
     { value: 'kg', label: 'Kilograms (kg)' },
@@ -24,6 +22,8 @@ const BasicDetailsForm = ({ formData, onFormChange, errors }) => {
     { value: 'boxes', label: 'Boxes' },
     { value: 'bags', label: 'Bags' }
   ];
+
+  const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field, value) => {
     onFormChange({
@@ -48,8 +48,58 @@ const BasicDetailsForm = ({ formData, onFormChange, errors }) => {
     handleInputChange('expiryDateTime', date?.toISOString());
   };
 
+  // Submit handler to send data to Supabase
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    // Use imageUrl prop from PhotoUpload.jsx
+    const donationData = {
+      image_url: imageUrl || '',
+      food_name: formData.foodName,
+      food_type: formData.foodType,
+      quantity: Number(formData.quantity),
+      unit: formData.quantityUnit,
+      estimated_servings: Number(formData.estimatedServings),
+      expiry_datetime: formData.expiryDateTime,
+      description: formData.description, // <-- store food description
+      created_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from('donations')
+      .insert([donationData]);
+
+    setLoading(false);
+
+    if (error) {
+      alert('Error posting donation: ' + error.message);
+    } else {
+      alert('Donation posted successfully!');
+      // Optionally reset form or navigate
+    }
+  };
+
+  // Only render warning if not fresh
+  if (
+    analysis &&
+    (
+      analysis.freshness?.toLowerCase() !== "fresh" ||
+      analysis.freshness?.toLowerCase() === "n/a" ||
+      (analysis.advice && analysis.advice.toLowerCase().includes("non-deliverable"))
+    )
+  ) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-error/10 border border-error/20 rounded-lg p-4 mb-4 text-error font-semibold">
+          ⚠️ Warning: This food is not fresh or non-deliverable. You cannot post this item.
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-6">
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Food Name */}
         <Input
@@ -143,7 +193,14 @@ const BasicDetailsForm = ({ formData, onFormChange, errors }) => {
         description="Approximate number of people this food can serve"
         min="1"
       />
-    </div>
+      <button
+        type="submit"
+        disabled={loading}
+        className="mt-4 px-6 py-2 bg-primary text-white rounded-lg font-bold"
+      >
+        {loading ? "Posting..." : "Post Donation"}
+      </button>
+    </form>
   );
 };
 

@@ -57,7 +57,7 @@ const styles = {
   }
 };
 
-const PhotoUpload = () => {
+const PhotoUpload = ({ photos = [], onPhotosChange, maxPhotos = 5, onAnalysisChange }) => {
   const [file, setFile] = useState(null);
   const [analysis, setAnalysis] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -66,6 +66,10 @@ const PhotoUpload = () => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setAnalysis(null);
+      // Clear analysis when new file is selected
+      if (onAnalysisChange) {
+        onAnalysisChange(null);
+      }
     }
   };
 
@@ -82,17 +86,52 @@ const PhotoUpload = () => {
 
     try {
       setLoading(true);
-      const res = await axios.post("http://127.0.0.1:5000/analyze", formData);
+      const res = await axios.post("http://127.0.0.1:5001/analyze", formData);
       // Check if the response from the backend contains an error
       if (res.data.error) {
-        alert(`Analysis failed: ${res.data.error}`);
-        setAnalysis(null);
+        console.warn("Backend returned error:", res.data.error);
+        // Still show demo analysis if it's provided
+        if (res.data.food_type) {
+          setAnalysis(res.data);
+          // Pass analysis to parent component
+          if (onAnalysisChange) {
+            onAnalysisChange(res.data);
+          }
+        } else {
+          setAnalysis(null);
+          if (onAnalysisChange) {
+            onAnalysisChange(null);
+          }
+        }
       } else {
         setAnalysis(res.data);
+        // Pass analysis to parent component
+        if (onAnalysisChange) {
+          onAnalysisChange(res.data);
+        }
       }
     } catch (err) {
       console.error("Error during analysis:", err);
-      alert("Error analyzing the image. Please try a different image or check the console.");
+      
+      // Provide demo analysis when backend is not available
+      if (err.code === 'ECONNREFUSED' || err.message.includes('Network Error')) {
+        console.log("Backend not available, providing demo analysis");
+        const demoAnalysis = {
+          food_type: "Demo Food Item",
+          freshness: "Fresh", 
+          advice: "Demo analysis - Backend server is not running. Start the backend to enable AI analysis."
+        };
+        setAnalysis(demoAnalysis);
+        if (onAnalysisChange) {
+          onAnalysisChange(demoAnalysis);
+        }
+      } else {
+        alert("Error analyzing the image. Please try a different image or check the console.");
+        setAnalysis(null);
+        if (onAnalysisChange) {
+          onAnalysisChange(null);
+        }
+      }
     } finally {
       setLoading(false);
     }
@@ -132,11 +171,41 @@ const PhotoUpload = () => {
       </form>
 
       {analysis && (
-        <div style={styles.resultsContainer}>
+        <div style={{
+          ...styles.resultsContainer,
+          ...(analysis.freshness?.toLowerCase().includes('expired') ? {
+            backgroundColor: '#fee',
+            border: '2px solid #f44336',
+            borderRadius: '8px',
+            padding: '16px',
+            marginTop: '16px'
+          } : {
+            backgroundColor: '#e8f5e8',
+            border: '2px solid #4caf50',
+            borderRadius: '8px',
+            padding: '16px',
+            marginTop: '16px'
+          })
+        }}>
+          {analysis.freshness?.toLowerCase().includes('expired') && (
+            <div style={{
+              backgroundColor: '#f44336',
+              color: 'white',
+              padding: '12px',
+              borderRadius: '6px',
+              marginBottom: '16px',
+              fontWeight: 'bold',
+              textAlign: 'center'
+            }}>
+              ⚠️ This food item is expired and cannot be posted.
+            </div>
+          )}
           <p><strong>Food Type:</strong> {analysis.food_type}</p>
-          <p><strong>Freshness:</strong> {analysis.freshness}</p>
+          <p><strong>Freshness:</strong> <span style={{
+            color: analysis.freshness?.toLowerCase().includes('expired') ? '#f44336' : '#4caf50',
+            fontWeight: 'bold'
+          }}>{analysis.freshness}</span></p>
           <p><strong>Advice:</strong> {analysis.advice}</p>
-          {/* Remove all input fields, only show results */}
         </div>
       )}
     </div>
