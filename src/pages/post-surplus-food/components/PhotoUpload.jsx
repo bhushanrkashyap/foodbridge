@@ -139,7 +139,18 @@ const PhotoUpload = ({ photos = [], onPhotosChange, maxPhotos = 5, onAnalysisCha
 
   return (
     <div style={styles.container}>
-      <h3 style={styles.title}>Analyze Food Freshness</h3>
+      <h3 style={styles.title}>
+        Analyze Food Freshness
+        <span style={{ color: '#ef4444', marginLeft: '4px', fontWeight: 'bold' }}>*</span>
+      </h3>
+      <p style={{ 
+        fontSize: '14px', 
+        color: '#6b7280', 
+        marginBottom: '16px',
+        marginTop: '-8px'
+      }}>
+        Upload a photo of your food and analyze its freshness before proceeding.
+      </p>
       <form onSubmit={handleSubmit}>
         <div style={styles.formRow}>
           <label htmlFor="file-upload" style={styles.inputLabel}>

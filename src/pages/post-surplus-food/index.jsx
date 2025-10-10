@@ -25,6 +25,37 @@ const PostSurplusFood = () => {
   const [errors, setErrors] = useState({});
   const [photos, setPhotos] = useState([]);
   const [autoSuggestedTags, setAutoSuggestedTags] = useState([]);
+  const [analysisResult, setAnalysisResult] = useState(null);
+
+  // Prevent browser back button from navigating away during form completion
+  useEffect(() => {
+    const handlePopState = (e) => {
+      e.preventDefault();
+      if (currentStep > 1) {
+        // If user is on step 2 or later, go to previous step instead of browser back
+        setCurrentStep(prev => prev - 1);
+      } else {
+        // If on step 1, confirm before leaving
+        const confirmLeave = window.confirm('Are you sure you want to leave? Your progress will be lost.');
+        if (confirmLeave) {
+          navigate('/donor-dashboard');
+        } else {
+          // Push state back to prevent navigation
+          window.history.pushState(null, '', window.location.pathname);
+        }
+      }
+    };
+
+    // Push initial state
+    window.history.pushState(null, '', window.location.pathname);
+    
+    // Listen for back button
+    window.addEventListener('popstate', handlePopState);
+
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [currentStep, navigate]);
 
   const [formData, setFormData] = useState({
     // Basic Details
@@ -167,6 +198,12 @@ const PostSurplusFood = () => {
         if (!formData?.description || formData?.description?.length < 20) {
           newErrors.description = 'Description must be at least 20 characters';
         }
+        // Make food freshness analysis compulsory
+        if (!analysisResult) {
+          newErrors.analysis = 'Food freshness analysis is required. Please upload and analyze a photo of your food.';
+        } else if (analysisResult.freshness?.toLowerCase().includes('expired')) {
+          newErrors.analysis = 'Cannot proceed with expired food. Please select fresh food items only.';
+        }
         break;
         
       case 2:
@@ -208,8 +245,19 @@ const PostSurplusFood = () => {
   };
 
   const handleNext = () => {
+    // Check if food is expired
+    const isExpired = analysisResult && analysisResult.freshness?.toLowerCase().includes('expired');
+    if (isExpired && currentStep === 1) {
+      return; // Don't proceed if expired on step 1
+    }
+    
     if (validateStep(currentStep)) {
       setCurrentStep(prev => Math.min(prev + 1, steps?.length));
+      // Scroll to top when changing steps
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Scroll to top to show error messages
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -253,15 +301,25 @@ const PostSurplusFood = () => {
       case 1:
         return (
           <div className="space-y-8">
-            <PhotoUpload
-              photos={photos}
-              onPhotosChange={setPhotos}
-              maxPhotos={5}
-            />
+            <div>
+              <PhotoUpload
+                photos={photos}
+                onPhotosChange={setPhotos}
+                maxPhotos={5}
+                onAnalysisChange={setAnalysisResult}
+              />
+              {errors?.analysis && (
+                <div className="mt-3 p-3 bg-error/10 border border-error/20 rounded-lg flex items-start gap-2">
+                  <Icon name="AlertCircle" size={18} className="text-error flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-error font-medium">{errors?.analysis}</span>
+                </div>
+              )}
+            </div>
             <BasicDetailsForm
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              analysis={analysisResult}
             />
           </div>
         );
@@ -434,19 +492,13 @@ const PostSurplusFood = () => {
             </Button>
 
             <div className="flex gap-3">
-              <Button
-                variant="ghost"
-                onClick={() => navigate('/donor-dashboard')}
-              >
-                Save as Draft
-              </Button>
-
               {currentStep < steps?.length ? (
                 <Button
                   variant="default"
                   onClick={handleNext}
                   iconName="ChevronRight"
                   iconPosition="right"
+                  disabled={currentStep === 1 && analysisResult && analysisResult.freshness?.toLowerCase().includes('expired')}
                 >
                   Next Step
                 </Button>
