@@ -1,13 +1,9 @@
-import React, { useState } from 'react';
+import React from 'react';
 import Icon from '../../../components/AppIcon';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
 
 const LocationDetails = ({ formData, onFormChange, errors }) => {
-  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
-  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
-
   const stateOptions = [
     { value: 'andhra-pradesh', label: 'Andhra Pradesh' },
     { value: 'arunachal-pradesh', label: 'Arunachal Pradesh' },
@@ -54,54 +50,11 @@ const LocationDetails = ({ formData, onFormChange, errors }) => {
     });
   };
 
-  const detectCurrentLocation = async () => {
-    setIsDetectingLocation(true);
-    
-    try {
-      if (!navigator.geolocation) {
-        throw new Error('Geolocation is not supported');
-      }
-
-      const position = await new Promise((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 300000
-        });
-      });
-
-      // Mock reverse geocoding (replace with actual service)
-      const mockAddress = {
-        street: '123 MG Road',
-        area: 'Koramangala',
-        city: 'Bangalore',
-        state: 'karnataka',
-        pincode: '560034',
-        latitude: position?.coords?.latitude,
-        longitude: position?.coords?.longitude
-      };
-
-      onFormChange({
-        ...formData,
-        pickupAddress: {
-          ...formData?.pickupAddress,
-          ...mockAddress
-        }
-      });
-
-      setUseCurrentLocation(true);
-    } catch (error) {
-      console.error('Location detection failed:', error);
-    } finally {
-      setIsDetectingLocation(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       {/* Location Detection */}
       <div className="bg-muted/50 rounded-lg p-4 border border-border">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
               <Icon name="MapPin" size={20} className="text-primary" />
@@ -111,21 +64,10 @@ const LocationDetails = ({ formData, onFormChange, errors }) => {
                 Pickup Location
               </h3>
               <p className="text-xs text-muted-foreground">
-                {useCurrentLocation ? 'Using detected location' : 'Add your pickup address'}
+                Add your pickup address
               </p>
             </div>
           </div>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={detectCurrentLocation}
-            loading={isDetectingLocation}
-            iconName="Navigation"
-            iconPosition="left"
-          >
-            {isDetectingLocation ? 'Detecting...' : 'Use Current Location'}
-          </Button>
         </div>
       </div>
       {/* Address Form */}

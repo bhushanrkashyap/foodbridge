@@ -193,13 +193,7 @@ const BasicDetailsForm = ({ formData, onFormChange, errors, analysis, imageUrl }
         description="Approximate number of people this food can serve"
         min="1"
       />
-      <button
-        type="submit"
-        disabled={loading}
-        className="mt-4 px-6 py-2 bg-primary text-white rounded-lg font-bold"
-      >
-        {loading ? "Posting..." : "Post Donation"}
-      </button>
+      {/* Removed Post Donation button */}
     </form>
   );
 };

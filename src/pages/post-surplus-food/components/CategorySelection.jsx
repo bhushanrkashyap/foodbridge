@@ -1,7 +1,8 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
+import { supabase } from '../../../supabaseClient';
 
-const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggestedTags }) => {
+const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggestedTags, donationId }) => {
   const foodCategories = [
     { id: 'vegetarian', label: 'Vegetarian', icon: 'Leaf', color: 'bg-green-100 text-green-800 border-green-200' },
     { id: 'vegan', label: 'Vegan', icon: 'Sprout', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
@@ -17,12 +18,23 @@ const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggest
     { id: 'frozen', label: 'Frozen', icon: 'Snowflake', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
   ];
 
-  const handleCategoryToggle = (categoryId) => {
+  const updateTagsInSupabase = async (tags) => {
+    if (!donationId) return; // donationId must be provided
+    await supabase
+      .from('donations')
+      .update({ tags })
+      .eq('id', donationId);
+  };
+
+  const handleCategoryToggle = async (categoryId) => {
     const updatedCategories = selectedCategories?.includes(categoryId)
       ? selectedCategories?.filter(id => id !== categoryId)
       : [...selectedCategories, categoryId];
     
     onCategoriesChange(updatedCategories);
+
+    // Update tags in Supabase
+    await updateTagsInSupabase(updatedCategories);
   };
 
   const handleAcceptSuggestion = (tagId) => {
