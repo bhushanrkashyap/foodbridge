@@ -73,7 +73,6 @@ const OrganizationDetailsForm = ({ userType, formData, onFormChange, errors, cla
     switch (userType) {
       case 'restaurant': return 'Restaurant Details';
       case 'ngo': return 'Organization Details';
-      case 'volunteer': return 'Volunteer Preferences';
       default: return 'Organization Details';
     }
   };
@@ -82,7 +81,6 @@ const OrganizationDetailsForm = ({ userType, formData, onFormChange, errors, cla
     switch (userType) {
       case 'restaurant': return 'Tell us about your restaurant to help match with the right recipients';
       case 'ngo': return 'Provide your organization details for verification and better matching';
-      case 'volunteer': return 'Set your availability and preferences for volunteer activities';
       default: return 'Provide additional details about your organization';
     }
   };
@@ -175,32 +173,6 @@ const OrganizationDetailsForm = ({ userType, formData, onFormChange, errors, cla
               value={formData?.beneficiariesCount || ''}
               onChange={(e) => onFormChange('beneficiariesCount', e?.target?.value)}
               error={errors?.beneficiariesCount}
-              required
-            />
-          </>
-        )}
-
-        {/* Volunteer-specific fields */}
-        {userType === 'volunteer' && (
-          <>
-            <Select
-              label="Availability"
-              placeholder="Select your availability"
-              options={availabilityOptions}
-              value={formData?.availability || ''}
-              onChange={(value) => onFormChange('availability', value)}
-              error={errors?.availability}
-              required
-            />
-
-            <Input
-              label="Transportation"
-              type="text"
-              placeholder="e.g., Own vehicle, Public transport, Walking"
-              value={formData?.transportation || ''}
-              onChange={(e) => onFormChange('transportation', e?.target?.value)}
-              error={errors?.transportation}
-              description="How will you help with pickups and deliveries?"
               required
             />
           </>

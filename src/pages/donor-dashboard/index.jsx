@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
 import DashboardNavigation from '../../components/ui/DashboardNavigation';
-import ActionFloatingButton from '../../components/ui/ActionFloatingButton';
 import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation';
 import MetricsCard from './components/MetricsCard';
 import FoodPostCard from './components/FoodPostCard';
@@ -611,8 +610,6 @@ const DonorDashboard = () => {
           </div>
         </main>
       </div>
-
-      <ActionFloatingButton userRole="donor" />
     </div>
   );
 };

@@ -14,6 +14,7 @@ const RegisterForm = () => {
   });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -41,8 +42,16 @@ const RegisterForm = () => {
       .from("users")
       .insert([{ email: formData.email, name: formData.name, role: formData.role }]);
     setLoading(false);
-    // Always navigate to donor-dashboard after registration attempt
-    navigate("/donor-dashboard");
+    
+    // Redirect based on user role
+    if (formData.role === 'donor') {
+      navigate("/donor-dashboard");
+    } else if (formData.role === 'recipient') {
+      navigate("/recipient-dashboard");
+    } else {
+      // Default to donor dashboard
+      navigate("/donor-dashboard");
+    }
   };
 
   return (
@@ -87,16 +96,24 @@ const RegisterForm = () => {
             required
             className="mb-4"
           />
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            placeholder="Enter your password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            className="mb-4"
-          />
+          <div className="relative mb-4">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter your password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <Icon name={showPassword ? "EyeOff" : "Eye"} size={16} />
+            </button>
+          </div>
           <div>
             <label className="block text-sm font-medium text-muted-foreground mb-1">Role</label>
             <select
@@ -107,7 +124,6 @@ const RegisterForm = () => {
             >
               <option value="donor">Donor</option>
               <option value="recipient">Recipient</option>
-              <option value="volunteer">Volunteer</option>
             </select>
           </div>
           <Button

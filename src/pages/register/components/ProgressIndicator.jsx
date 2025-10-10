@@ -12,10 +12,7 @@ const ProgressIndicator = ({ currentStep, totalSteps, userType, className = '' }
     ];
 
     // Customize step 3 label based on user type
-    if (userType === 'volunteer') {
-      baseSteps[2].label = 'Preferences';
-      baseSteps[2].icon = 'Settings';
-    } else if (userType === 'restaurant') {
+    if (userType === 'restaurant') {
       baseSteps[2].label = 'Restaurant';
       baseSteps[2].icon = 'ChefHat';
     } else if (userType === 'ngo') {

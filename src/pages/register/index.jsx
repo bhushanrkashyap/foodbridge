@@ -59,11 +59,6 @@ const Register = () => {
       email: "ngo@foodbridge.com", 
       password: "NGO123!",
       phone: "9876543211"
-    },
-    volunteer: {
-      email: "volunteer@foodbridge.com",
-      password: "Volunteer123!",
-      phone: "9876543212"
     }
   };
 
@@ -150,13 +145,6 @@ const Register = () => {
           if (!formData?.beneficiariesCount) {
             newErrors.beneficiariesCount = 'Number of beneficiaries is required';
           }
-        } else if (formData?.userType === 'volunteer') {
-          if (!formData?.availability) {
-            newErrors.availability = 'Please select your availability';
-          }
-          if (!formData?.transportation?.trim()) {
-            newErrors.transportation = 'Transportation details are required';
-          }
         }
         
         // Common address validation
@@ -224,7 +212,7 @@ const Register = () => {
       // Redirect based on user type
       if (formData?.userType === 'restaurant') {
         navigate('/donor-dashboard');
-      } else if (formData?.userType === 'ngo' || formData?.userType === 'volunteer') {
+      } else if (formData?.userType === 'ngo') {
         navigate('/recipient-dashboard');
       } else {
         navigate('/donor-dashboard');

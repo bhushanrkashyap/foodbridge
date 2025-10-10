@@ -57,23 +57,6 @@ const DocumentUploadForm = ({ userType, formData, onFormChange, errors, classNam
             accept: '.pdf,.jpg,.jpeg,.png'
           }
         ];
-      case 'volunteer':
-        return [
-          {
-            id: 'identity',
-            label: 'Identity Proof',
-            description: 'Aadhaar card, PAN card, or Passport',
-            required: true,
-            accept: '.pdf,.jpg,.jpeg,.png'
-          },
-          {
-            id: 'address',
-            label: 'Address Proof',
-            description: 'Utility bill or Aadhaar card',
-            required: false,
-            accept: '.pdf,.jpg,.jpeg,.png'
-          }
-        ];
       default:
         return [];
     }

@@ -18,14 +18,6 @@ const UserTypeSelection = ({ selectedType, onTypeSelect, className = '' }) => {
       icon: 'Heart',
       features: ['Browse available food', 'Manage requests', 'Coordinate pickups', 'Track beneficiaries'],
       color: 'bg-success/10 border-success text-success'
-    },
-    {
-      id: 'volunteer',
-      label: 'Volunteer',
-      description: 'Help with food pickup, delivery, and distribution logistics',
-      icon: 'Users',
-      features: ['Pickup coordination', 'Delivery tracking', 'Route optimization', 'Community impact'],
-      color: 'bg-accent/10 border-accent text-accent'
     }
   ];
 
@@ -39,7 +31,7 @@ const UserTypeSelection = ({ selectedType, onTypeSelect, className = '' }) => {
           Select how you'd like to contribute to reducing food waste
         </p>
       </div>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
         {userTypes?.map((type) => (
           <div
             key={type?.id}

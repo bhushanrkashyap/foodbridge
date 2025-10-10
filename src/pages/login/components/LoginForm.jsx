@@ -16,6 +16,7 @@ const LoginForm = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [showSignUp, setShowSignUp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -152,17 +153,25 @@ const LoginForm = () => {
             className="mb-4"
           />
 
-          <Input
-            label="Password"
-            type="password"
-            name="password"
-            placeholder="Enter your password"
-            value={formData?.password}
-            onChange={handleInputChange}
-            error={formErrors?.password}
-            required
-            className="mb-4"
-          />
+          <div className="relative mb-4">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              name="password"
+              placeholder="Enter your password"
+              value={formData?.password}
+              onChange={handleInputChange}
+              error={formErrors?.password}
+              required
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-9 text-muted-foreground hover:text-foreground transition-smooth"
+            >
+              <Icon name={showPassword ? "EyeOff" : "Eye"} size={16} />
+            </button>
+          </div>
 
           <div className="flex items-center justify-between mb-6">
             <Checkbox

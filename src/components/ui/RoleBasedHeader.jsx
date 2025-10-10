@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Icon from '../AppIcon';
 import Button from './Button';
+import { supabase } from '../../supabaseClient';
 
 const RoleBasedHeader = ({ userRole = 'donor', isMenuOpen = false, onMenuToggle }) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const getRoleConfig = () => {
@@ -46,6 +48,27 @@ const RoleBasedHeader = ({ userRole = 'donor', isMenuOpen = false, onMenuToggle 
     setIsProfileOpen(!isProfileOpen);
   };
 
+  const handleSignOut = async () => {
+    try {
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Clear any local storage items
+      localStorage.clear();
+      sessionStorage.clear();
+      
+      // Close the profile dropdown
+      setIsProfileOpen(false);
+      
+      // Redirect to login page
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      // Still redirect to login even if there's an error
+      navigate('/login');
+    }
+  };
+
   if (isAuthPage) {
     return (
       <header className="fixed top-0 left-0 right-0 z-50 bg-card border-b border-border">
@@ -78,37 +101,6 @@ const RoleBasedHeader = ({ userRole = 'donor', isMenuOpen = false, onMenuToggle 
               FoodBridge
             </span>
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center space-x-8">
-            <Link
-              to={roleConfig?.dashboardPath}
-              className={`text-sm font-medium transition-smooth hover:text-primary ${
-                location?.pathname === roleConfig?.dashboardPath
-                  ? 'text-primary' :'text-muted-foreground'
-              }`}
-            >
-              Dashboard
-            </Link>
-            <Link
-              to="/food-details"
-              className={`text-sm font-medium transition-smooth hover:text-primary ${
-                location?.pathname === '/food-details' ?'text-primary' :'text-muted-foreground'
-              }`}
-            >
-              Food Details
-            </Link>
-            {userRole === 'donor' && (
-              <Link
-                to="/post-surplus-food"
-                className={`text-sm font-medium transition-smooth hover:text-primary ${
-                  location?.pathname === '/post-surplus-food' ?'text-primary' :'text-muted-foreground'
-                }`}
-              >
-                Post Food
-              </Link>
-            )}
-          </nav>
 
           {/* Right Side Actions */}
           <div className="flex items-center space-x-4">
@@ -164,10 +156,7 @@ const RoleBasedHeader = ({ userRole = 'donor', isMenuOpen = false, onMenuToggle 
                     </Link>
                     <hr className="my-1 border-border" />
                     <button
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        // Handle logout
-                      }}
+                      onClick={handleSignOut}
                       className="flex items-center w-full px-4 py-2 text-sm text-error hover:bg-muted transition-smooth"
                     >
                       <Icon name="LogOut" size={16} className="mr-3" />

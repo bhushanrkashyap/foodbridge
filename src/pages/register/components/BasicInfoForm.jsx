@@ -4,6 +4,7 @@ import Icon from '../../../components/AppIcon';
 
 const BasicInfoForm = ({ formData, onFormChange, errors, className = '' }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
 
   const calculatePasswordStrength = (password) => {
@@ -149,15 +150,24 @@ const BasicInfoForm = ({ formData, onFormChange, errors, className = '' }) => {
         </div>
 
         {/* Confirm Password */}
-        <Input
-          label="Confirm Password"
-          type="password"
-          placeholder="Re-enter your password"
-          value={formData?.confirmPassword || ''}
-          onChange={(e) => onFormChange('confirmPassword', e?.target?.value)}
-          error={errors?.confirmPassword}
-          required
-        />
+        <div className="relative">
+          <Input
+            label="Confirm Password"
+            type={showConfirmPassword ? "text" : "password"}
+            placeholder="Re-enter your password"
+            value={formData?.confirmPassword || ''}
+            onChange={(e) => onFormChange('confirmPassword', e?.target?.value)}
+            error={errors?.confirmPassword}
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-9 text-muted-foreground hover:text-foreground transition-smooth"
+          >
+            <Icon name={showConfirmPassword ? "EyeOff" : "Eye"} size={16} />
+          </button>
+        </div>
       </div>
     </div>
   );
