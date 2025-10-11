@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../supabaseClient';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import Icon from '../../../components/AppIcon';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
@@ -48,6 +50,25 @@ const LocationDetails = ({ formData, onFormChange, donationId, errors, onNextSte
   const [successMessage, setSuccessMessage] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [nextStepDisabled, setNextStepDisabled] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+  // Get user's current location using browser geolocation
+  useEffect(() => {
+    if (!userLocation) {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setUserLocation({
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            });
+          },
+          (error) => {
+            setErrorMessage('Unable to fetch your location.');
+          }
+        );
+      }
+    }
+  }, [userLocation]);
 
   const handleInputChange = (field, value) => {
     const newData = { ...formData, [field]: value };
@@ -258,26 +279,29 @@ const LocationDetails = ({ formData, onFormChange, donationId, errors, onNextSte
           />
         </div>
 
-        {/* Map Preview */}
-        {formData?.pickupAddress?.latitude && formData?.pickupAddress?.longitude && (
-          <div className="bg-card border border-border rounded-lg overflow-hidden">
-            <div className="bg-muted/50 px-4 py-2 border-b border-border">
-              <h4 className="text-sm font-heading font-semibold text-foreground">
-                Pickup Location Preview
-              </h4>
-            </div>
-            <div className="h-48">
-              <iframe
-                width="100%"
-                height="100%"
-                loading="lazy"
-                title="Pickup Location"
-                referrerPolicy="no-referrer-when-downgrade"
-                src={`https://www.google.com/maps?q=${formData?.pickupAddress?.latitude},${formData?.pickupAddress?.longitude}&z=16&output=embed`}
-              />
-            </div>
+        {/* OpenStreetMap (Leaflet) User Location Preview */}
+        <div className="bg-card border border-border rounded-lg overflow-hidden mt-4">
+          <div className="bg-muted/50 px-4 py-2 border-b border-border">
+            <h4 className="text-sm font-heading font-semibold text-foreground">
+              Your Current Location (OpenStreetMap)
+            </h4>
           </div>
-        )}
+          <div className="h-64 w-full">
+            {userLocation ? (
+              <MapContainer center={[userLocation.lat, userLocation.lng]} zoom={16} style={{ height: '100%', width: '100%' }}>
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                <Marker position={[userLocation.lat, userLocation.lng]}>
+                  <Popup>You are here</Popup>
+                </Marker>
+              </MapContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-muted-foreground text-sm">Fetching your location...</div>
+            )}
+          </div>
+        </div>
         
         {/* Save & Continue Button */}
         <Button
