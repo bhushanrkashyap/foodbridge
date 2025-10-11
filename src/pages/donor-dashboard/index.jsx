@@ -304,37 +304,7 @@ const DonorDashboard = () => {
       <QuickActions />
 
       {/* Recent Activity Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Active Posts Preview */}
-        <div className="lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-heading font-bold text-foreground">
-              Recent Posts
-            </h2>
-            <Button
-              variant="outline"
-              size="sm"
-              iconName="ArrowRight"
-              iconPosition="right"
-              onClick={() => navigate('/donor-dashboard?section=active')}
-            >
-              View All
-            </Button>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {foodPosts?.slice(0, 4)?.map(post => (
-              <FoodPostCard
-                key={post?.id}
-                post={post}
-                onViewDetails={(id) => navigate(`/food-details?id=${id}`)}
-                onExtendExpiry={(id) => handlePostAction('extend', id)}
-                onMarkCollected={(id) => handlePostAction('collected', id)}
-              />
-            ))}
-          </div>
-        </div>
-
+      <div className="grid grid-cols-1 gap-6">
         {/* Notifications */}
         <div>
           <NotificationPanel
@@ -351,7 +321,7 @@ const DonorDashboard = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-heading font-bold text-foreground">
-          Active Food Posts
+          My Food Posts
         </h2>
         <Button
           variant="default"
@@ -363,19 +333,20 @@ const DonorDashboard = () => {
         </Button>
       </div>
 
-      <FilterControls
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-        onBulkAction={handleBulkAction}
-        selectedPosts={selectedPosts}
-        totalPosts={filteredPosts?.length}
-      />
+      <div className="bg-muted/30 rounded-lg p-4 mb-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+            <Icon name="Info" size={16} />
+            <span>Showing all your food posts</span>
+          </div>
+          <div className="text-sm font-medium text-foreground">
+            Total Posts: {foodPosts?.length}
+          </div>
+        </div>
+      </div>
 
-      <div className={`grid gap-6 ${
-        filters?.view === 'grid' ?'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' :'grid-cols-1'
-      }`}>
-        {filteredPosts?.map(post => (
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        {foodPosts?.map(post => (
           <FoodPostCard
             key={post?.id}
             post={post}
@@ -386,14 +357,14 @@ const DonorDashboard = () => {
         ))}
       </div>
 
-      {filteredPosts?.length === 0 && (
+      {foodPosts?.length === 0 && (
         <div className="text-center py-12">
           <Icon name="Package" size={48} className="text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-heading font-semibold text-foreground mb-2">
-            No posts found
+            No food posts yet
           </h3>
           <p className="text-muted-foreground mb-4">
-            Try adjusting your filters or create a new food post.
+            Start making a difference by posting your surplus food.
           </p>
           <Button
             variant="default"
