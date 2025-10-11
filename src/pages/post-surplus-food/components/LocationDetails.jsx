@@ -105,7 +105,9 @@ const LocationDetails = ({ formData, onFormChange, donationId, errors, onNextSte
       pickup_city: formData?.pickupAddress?.city || '',
       pickup_instructions: formData?.pickupInstructions || '',
       contact_person_name: formData?.contactPerson || '',
-      contact_phone: cleanedPhone
+      contact_phone: cleanedPhone,
+      pickup_latitude: userLocation?.lat || formData?.pickupAddress?.latitude || null,
+      pickup_longitude: userLocation?.lng || formData?.pickupAddress?.longitude || null
     };
 
     const { error } = await supabase

@@ -260,8 +260,14 @@ const PostSurplusFood = () => {
         .from('donations')
         .update({ status: 'successful' })
         .eq('id', donationId);
-      
+
+      console.log('=== DONATION SUBMISSION ===');
+      console.log('Donation ID:', donationId);
+      console.log('Update Error:', updateError);
+      console.log('Status set to: successful');
+
       if (updateError) {
+        console.error('❌ Failed to update status:', updateError);
         // If update fails, set status to 'unsuccessful'
         await supabase
           .from('donations')
@@ -269,10 +275,17 @@ const PostSurplusFood = () => {
           .eq('id', donationId);
         throw updateError;
       }
+
+      console.log('✅ Successfully posted food donation:', donationId);
       
-      console.log('Successfully posted food donation:', donationId);
+      // Verify the update
+      const { data: verifyData } = await supabase
+        .from('donations')
+        .select('id, food_name, status')
+        .eq('id', donationId)
+        .single();
       
-      // Navigate to donor dashboard with success message
+      console.log('📋 Verification - Donation in DB:', verifyData);      // Navigate to donor dashboard with success message
       navigate('/donor-dashboard?success=food-posted');
       
     } catch (error) {

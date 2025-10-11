@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
 
@@ -7,13 +7,21 @@ const ActionButtons = ({
   onAccept, 
   onRequestInfo, 
   onDecline,
-  userCapacity = 50 
+  userCapacity = 50,
+  disabled = false
 }) => {
   const [showCapacityModal, setShowCapacityModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
-  const [requestedQuantity, setRequestedQuantity] = useState(foodData?.servings);
+  const [requestedQuantity, setRequestedQuantity] = useState(foodData?.servings || 1);
   const [declineReason, setDeclineReason] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Update requested quantity when foodData changes
+  useEffect(() => {
+    if (foodData?.servings) {
+      setRequestedQuantity(foodData.servings);
+    }
+  }, [foodData]);
 
   const handleAcceptClick = () => {
     if (foodData?.servings > userCapacity) {
@@ -95,7 +103,7 @@ const ActionButtons = ({
             iconName="Heart"
             iconPosition="left"
             onClick={handleAcceptClick}
-            disabled={isProcessing}
+            disabled={isProcessing || disabled || !foodData}
             loading={isProcessing && showCapacityModal}
             className="h-12"
           >
@@ -108,7 +116,7 @@ const ActionButtons = ({
               iconName="MessageCircle"
               iconPosition="left"
               onClick={handleRequestInfo}
-              disabled={isProcessing}
+              disabled={isProcessing || disabled}
             >
               Request Info
             </Button>
@@ -118,7 +126,7 @@ const ActionButtons = ({
               iconName="X"
               iconPosition="left"
               onClick={handleDeclineClick}
-              disabled={isProcessing}
+              disabled={isProcessing || disabled}
             >
               Decline
             </Button>
@@ -133,14 +141,14 @@ const ActionButtons = ({
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Available:</span>
-            <span className="font-mono font-medium text-primary">{foodData?.servings} servings</span>
+            <span className="font-mono font-medium text-primary">{foodData?.servings || 0} servings</span>
           </div>
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">Match:</span>
             <span className={`font-medium ${
-              foodData?.servings <= userCapacity ? 'text-success' : 'text-warning'
+              (foodData?.servings || 0) <= userCapacity ? 'text-success' : 'text-warning'
             }`}>
-              {foodData?.servings <= userCapacity ? 'Perfect Fit' : 'Partial Match'}
+              {(foodData?.servings || 0) <= userCapacity ? 'Perfect Fit' : 'Partial Match'}
             </span>
           </div>
         </div>
