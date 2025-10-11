@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
+import Button from '../../../components/ui/Button';
 import { supabase } from '../../../supabaseClient';
 
-const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggestedTags, donationId }) => {
+const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggestedTags, donationId, onNextStep }) => {
   const foodCategories = [
     { id: 'vegetarian', label: 'Vegetarian', icon: 'Leaf', color: 'bg-green-100 text-green-800 border-green-200' },
     { id: 'vegan', label: 'Vegan', icon: 'Sprout', color: 'bg-emerald-100 text-emerald-800 border-emerald-200' },
@@ -18,11 +19,24 @@ const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggest
     { id: 'frozen', label: 'Frozen', icon: 'Snowflake', color: 'bg-indigo-100 text-indigo-800 border-indigo-200' }
   ];
 
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [nextStepDisabled, setNextStepDisabled] = useState(false);
+
   const updateTagsInSupabase = async (tags) => {
-    if (!donationId) return; // donationId must be provided
+    if (!donationId) return;
     await supabase
       .from('donations')
       .update({ tags })
+      .eq('id', donationId);
+  };
+
+  const updateFoodCategoryInSupabase = async (category) => {
+    if (!donationId) return;
+    await supabase
+      .from('donations')
+      .update({ food_category: category })
       .eq('id', donationId);
   };
 
@@ -34,12 +48,56 @@ const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggest
     onCategoriesChange(updatedCategories);
 
     // Update tags in Supabase
-    await updateTagsInSupabase(updatedCategories);
+    if (donationId) {
+      await supabase
+        .from('donations')
+        .update({ tags: updatedCategories })
+        .eq('id', donationId);
+      // Store each selected tag as food_category (last selected tag)
+      if (!updatedCategories.includes(categoryId)) {
+        await supabase
+          .from('donations')
+          .update({ food_category: updatedCategories.length > 0 ? updatedCategories[updatedCategories.length - 1] : null })
+          .eq('id', donationId);
+      } else {
+        await updateFoodCategoryInSupabase(categoryId);
+      }
+    }
   };
 
   const handleAcceptSuggestion = (tagId) => {
     if (!selectedCategories?.includes(tagId)) {
       onCategoriesChange([...selectedCategories, tagId]);
+    }
+  };
+
+  // Next Step button handler
+  const handleNextStep = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    if (!donationId) {
+      setErrorMessage('Donation ID not found. Please complete the basic details step first.');
+      setLoading(false);
+      return;
+    }
+    
+    // Save selected tags to tags array column
+    const tagsToSave = selectedCategories || [];
+    const { error } = await supabase
+      .from('donations')
+      .update({ tags: tagsToSave })
+      .eq('id', donationId);
+      
+    setLoading(false);
+
+    if (error) {
+      setErrorMessage('Error saving food tags: ' + error.message);
+    } else {
+      setSuccessMessage('Food tags saved successfully! You can now proceed to the next step.');
+      setNextStepDisabled(true);
     }
   };
 
@@ -160,6 +218,30 @@ const CategorySelection = ({ selectedCategories, onCategoriesChange, autoSuggest
               );
             })}
           </div>
+        </div>
+      )}
+      
+      {/* Save & Continue Button */}
+      <Button
+        variant="primary"
+        onClick={handleNextStep}
+        loading={loading}
+        disabled={loading || nextStepDisabled}
+        className="w-full mt-6"
+        iconName="Save"
+        iconPosition="left"
+      >
+        {loading ? 'Saving...' : nextStepDisabled ? 'Saved ✓' : 'Save'}
+      </Button>
+      
+      {successMessage && (
+        <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded text-success text-center font-semibold">
+          {successMessage}
+        </div>
+      )}
+      {errorMessage && (
+        <div className="mt-4 p-3 bg-error/10 border border-error/30 rounded text-error text-center font-semibold">
+          {errorMessage}
         </div>
       )}
     </div>

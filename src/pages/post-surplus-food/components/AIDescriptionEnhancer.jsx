@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import Icon from '../../../components/AppIcon';
 import Button from '../../../components/ui/Button';
+import { supabase } from '../../../supabaseClient';
 
-const AIDescriptionEnhancer = ({ currentDescription, onDescriptionUpdate, foodName, foodType }) => {
+const AIDescriptionEnhancer = ({ currentDescription, onDescriptionUpdate, foodName, foodType, donationId, onNextStep }) => {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhancedDescription, setEnhancedDescription] = useState('');
   const [showComparison, setShowComparison] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [nextStepDisabled, setNextStepDisabled] = useState(false);
 
   const handleEnhanceDescription = async () => {
     if (!currentDescription || currentDescription?.length < 10) {
@@ -41,15 +45,41 @@ const AIDescriptionEnhancer = ({ currentDescription, onDescriptionUpdate, foodNa
     return `${baseEnhancement}\n\nOriginal details: ${original}`;
   };
 
-  const handleAcceptEnhancement = () => {
+  const handleAcceptEnhancement = async () => {
     onDescriptionUpdate(enhancedDescription);
     setShowComparison(false);
     setEnhancedDescription('');
+    setSuccessMessage('');
+    setErrorMessage('');
+  };
+
+  // Save enhanced description and go to next step
+  const handleSaveAndNextStep = async (e) => {
+    e.preventDefault();
+    setSuccessMessage('');
+    setErrorMessage('');
+    if (!donationId) {
+      setErrorMessage('Donation ID not found. Please complete the basic details step first.');
+      return;
+    }
+    const { error } = await supabase
+      .from('donations')
+      .update({ enhanced_description: enhancedDescription })
+      .eq('id', donationId);
+    if (error) {
+      setErrorMessage('Error saving enhanced description: ' + error.message);
+    } else {
+      setSuccessMessage('Enhanced description saved successfully! You can now proceed to the next step.');
+      setNextStepDisabled(true);
+      // Don't auto-navigate, let user click "Next Page" manually
+    }
   };
 
   const handleRejectEnhancement = () => {
     setShowComparison(false);
     setEnhancedDescription('');
+    setSuccessMessage('');
+    setErrorMessage('');
   };
 
   if (!currentDescription || currentDescription?.length < 10) {
@@ -198,6 +228,30 @@ const AIDescriptionEnhancer = ({ currentDescription, onDescriptionUpdate, foodNa
                 Keep Original
               </Button>
             </div>
+            
+            {/* Save & Continue Button */}
+            <Button
+              variant="primary"
+              onClick={handleSaveAndNextStep}
+              loading={nextStepDisabled}
+              disabled={nextStepDisabled}
+              className="w-full mt-4"
+              iconName="Save"
+              iconPosition="left"
+            >
+              {nextStepDisabled ? 'Saved ✓' : 'Save'}
+            </Button>
+            
+            {successMessage && (
+              <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded text-success text-center font-semibold">
+                {successMessage}
+              </div>
+            )}
+            {errorMessage && (
+              <div className="mt-4 p-3 bg-error/10 border border-error/30 rounded text-error text-center font-semibold">
+                {errorMessage}
+              </div>
+            )}
           </div>
         </div>
       )}

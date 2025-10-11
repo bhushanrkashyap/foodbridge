@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import Input from '../../../components/ui/Input';
 import Select from '../../../components/ui/Select';
-import Button from '../../../components/ui/Button';
 import { supabase } from '../../../supabaseClient';
 
-const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis, imageUrl, onNextStep, onDonationIdChange }) => {
+const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis, imageUrl }) => {
   const foodTypeOptions = [
   { value: 'prepared-meals', label: 'Prepared Meals' },
   { value: 'non-perishable', label: 'Non-Perishable' },
@@ -15,22 +14,26 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
 
   const quantityUnitOptions = [
     { value: 'kg', label: 'Kilograms (kg)' },
-    { value: 'g', label: 'Grams (g)' },
-    { value: 'l', label: 'Liters (L)' },
+    { value: 'grams', label: 'Grams (g)' },
+    { value: 'liters', label: 'Liters (L)' },
     { value: 'pieces', label: 'Pieces' },
     { value: 'plates', label: 'Plates/Servings' },
     { value: 'packets', label: 'Packets' },
-    { value: 'boxes', label: 'Boxes' }
+    { value: 'boxes', label: 'Boxes' },
+    { value: 'bags', label: 'Bags' }
   ];
 
   const [loading, setLoading] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [errorMessage, setErrorMessage] = useState('');
-  const [nextStepDisabled, setNextStepDisabled] = useState(false);
 
-  const handleInputChange = (field, value) => {
+  const handleInputChange = async (field, value) => {
     const newData = { ...formData, [field]: value };
     onFormChange(newData);
+    if (donationId) {
+      await supabase
+        .from('donations')
+        .update({ [field]: value })
+        .eq('id', donationId);
+    }
   };
 
   const formatDateTimeForInput = (date) => {
@@ -49,28 +52,12 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
     handleInputChange('expiryDateTime', date?.toISOString());
   };
 
-  // Store only basic details in Supabase on Next Step
-  const handleNextStep = async (e) => {
+  // Submit handler to send data to Supabase
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setSuccessMessage('');
-    setErrorMessage('');
 
-    // Validate required fields before saving
-    if (
-      !formData.foodName ||
-      !formData.foodType ||
-      !formData.quantity ||
-      !formData.quantityUnit ||
-      !formData.estimatedServings ||
-      !formData.expiryDateTime ||
-      !formData.description
-    ) {
-      setErrorMessage('Please fill all required fields before proceeding.');
-      setLoading(false);
-      return;
-    }
-
+    // Use imageUrl prop from PhotoUpload.jsx
     const donationData = {
       image_url: imageUrl || '',
       food_name: formData.foodName,
@@ -79,38 +66,21 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
       unit: formData.quantityUnit,
       estimated_servings: Number(formData.estimatedServings),
       expiry_datetime: formData.expiryDateTime,
-      description: formData.description,
+      description: formData.description, // <-- store food description
       created_at: new Date().toISOString()
     };
 
-    let result;
-    if (donationId) {
-      result = await supabase
-        .from('donations')
-        .update(donationData)
-        .eq('id', donationId)
-        .select('id');
-    } else {
-      result = await supabase
-        .from('donations')
-        .insert([donationData])
-        .select('id')
-        .single();
-    }
+    const { error } = await supabase
+      .from('donations')
+      .insert([donationData]);
 
     setLoading(false);
 
-    if (result.error) {
-      setErrorMessage('Error: ' + result.error.message);
-      setSuccessMessage('');
+    if (error) {
+      alert('Error posting donation: ' + error.message);
     } else {
-      setSuccessMessage('Basic details saved successfully! You can now proceed to the next step.');
-      setErrorMessage('');
-      setNextStepDisabled(true);
-      if (!donationId && result.data?.id && typeof onDonationIdChange === 'function') {
-        onDonationIdChange(result.data.id);
-      }
-      // Don't auto-navigate, let user click "Next Page" manually
+      alert('Donation posted successfully!');
+      // Optionally reset form or navigate
     }
   };
 
@@ -133,7 +103,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
   }
 
   return (
-    <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+    <form className="space-y-6" onSubmit={handleSubmit}>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Food Name */}
         <Input
@@ -227,30 +197,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
         description="Approximate number of people this food can serve"
         min="1"
       />
-      
-      {/* Save & Continue Button */}
-      <Button
-        variant="primary"
-        onClick={handleNextStep}
-        loading={loading}
-        disabled={loading || nextStepDisabled}
-        className="w-full mt-6"
-        iconName="Save"
-        iconPosition="left"
-      >
-        {loading ? 'Saving...' : nextStepDisabled ? 'Saved ✓' : 'Save'}
-      </Button>
-      
-      {successMessage && (
-        <div className="mt-4 p-3 bg-success/10 border border-success/30 rounded text-success text-center font-semibold">
-          {successMessage}
-        </div>
-      )}
-      {errorMessage && (
-        <div className="mt-4 p-3 bg-error/10 border border-error/30 rounded text-error text-center font-semibold">
-          {errorMessage}
-        </div>
-      )}
+      {/* Removed Post Donation button */}
     </form>
   );
 };

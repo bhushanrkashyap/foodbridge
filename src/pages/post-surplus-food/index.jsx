@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../supabaseClient';
 import Icon from '../../components/AppIcon';
 import Button from '../../components/ui/Button';
 import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
@@ -25,6 +26,8 @@ const PostSurplusFood = () => {
   const [errors, setErrors] = useState({});
   const [photos, setPhotos] = useState([]);
   const [autoSuggestedTags, setAutoSuggestedTags] = useState([]);
+  const [donationId, setDonationId] = useState(null);
+  const [imageUrl, setImageUrl] = useState('');
 
   const [formData, setFormData] = useState({
     // Basic Details
@@ -207,42 +210,85 @@ const PostSurplusFood = () => {
     return Object.keys(newErrors)?.length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, steps?.length));
-    }
+  const handleNext = async () => {
+    // Simply navigate to next step - data is saved by individual Save buttons
+    setErrors({});
+    setCurrentStep(prev => Math.min(prev + 1, steps?.length));
   };
 
   const handlePrevious = () => {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
+  const handleStepComplete = (stepName) => {
+    // Auto-advance to next step after component saves
+    setCurrentStep(prev => Math.min(prev + 1, steps?.length));
+  };
+
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) return;
+    if (!donationId) {
+      setErrors({ submit: 'Please complete the basic details step first.' });
+      return;
+    }
     
     setIsSubmitting(true);
     
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Verify the donation exists and has all required data
+      const { data: donation, error: fetchError } = await supabase
+        .from('donations')
+        .select('*')
+        .eq('id', donationId)
+        .single();
       
-      // Mock successful submission
-      const submissionData = {
-        ...formData,
-        photos: photos,
-        submittedAt: new Date()?.toISOString(),
-        status: 'active',
-        id: `food_${Date.now()}`
-      };
+      if (fetchError) throw fetchError;
       
-      console.log('Submitted food donation:', submissionData);
+      if (!donation) {
+        throw new Error('Donation not found');
+      }
+      
+      // Validate required fields
+      if (!donation.food_name || !donation.food_type || !donation.quantity || 
+          !donation.unit || !donation.expiry_datetime) {
+        setErrors({ submit: 'Please complete all required fields before submitting.' });
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Update status to 'successful' to mark as posted
+      const { error: updateError } = await supabase
+        .from('donations')
+        .update({ status: 'successful' })
+        .eq('id', donationId);
+      
+      if (updateError) {
+        // If update fails, set status to 'unsuccessful'
+        await supabase
+          .from('donations')
+          .update({ status: 'unsuccessful' })
+          .eq('id', donationId);
+        throw updateError;
+      }
+      
+      console.log('Successfully posted food donation:', donationId);
       
       // Navigate to donor dashboard with success message
       navigate('/donor-dashboard?success=food-posted');
       
     } catch (error) {
       console.error('Submission failed:', error);
-      setErrors({ submit: 'Failed to post food donation. Please try again.' });
+      
+      // Try to update status to 'unsuccessful' on error
+      try {
+        await supabase
+          .from('donations')
+          .update({ status: 'unsuccessful' })
+          .eq('id', donationId);
+      } catch (statusError) {
+        console.error('Failed to update status:', statusError);
+      }
+      
+      setErrors({ submit: 'Failed to post food donation: ' + (error.message || 'Please try again.') });
     } finally {
       setIsSubmitting(false);
     }
@@ -257,11 +303,20 @@ const PostSurplusFood = () => {
               photos={photos}
               onPhotosChange={setPhotos}
               maxPhotos={5}
+              onAnalysisChange={(analysis) => {
+                if (analysis?.image_url) {
+                  setImageUrl(analysis.image_url);
+                }
+              }}
             />
             <BasicDetailsForm
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              donationId={donationId}
+              imageUrl={imageUrl}
+              onNextStep={handleStepComplete}
+              onDonationIdChange={setDonationId}
             />
           </div>
         );
@@ -274,11 +329,15 @@ const PostSurplusFood = () => {
               onDescriptionUpdate={(description) => setFormData({ ...formData, description })}
               foodName={formData?.foodName}
               foodType={formData?.foodType}
+              donationId={donationId}
+              onNextStep={handleStepComplete}
             />
             <CategorySelection
               selectedCategories={formData?.selectedCategories}
               onCategoriesChange={(categories) => setFormData({ ...formData, selectedCategories: categories })}
               autoSuggestedTags={autoSuggestedTags}
+              donationId={donationId}
+              onNextStep={handleStepComplete}
             />
           </div>
         );
@@ -289,6 +348,8 @@ const PostSurplusFood = () => {
             formData={formData}
             onFormChange={setFormData}
             errors={errors}
+            donationId={donationId}
+            onNextStep={handleStepComplete}
           />
         );
         
@@ -299,11 +360,14 @@ const PostSurplusFood = () => {
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              donationId={donationId}
             />
             <UrgencyIndicator
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              donationId={donationId}
+              onNextStep={handleStepComplete}
             />
           </div>
         );
@@ -315,12 +379,51 @@ const PostSurplusFood = () => {
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              donationId={donationId}
+              onNextStep={handleStepComplete}
             />
             <BulkPosting
               formData={formData}
               onFormChange={setFormData}
               errors={errors}
+              donationId={donationId}
             />
+            
+            {/* Final Submit Button */}
+            <div className="bg-gradient-to-r from-success/5 to-primary/5 rounded-lg p-6 border-2 border-success/20">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-12 h-12 bg-success rounded-full flex items-center justify-center">
+                  <Icon name="CheckCircle" size={24} className="text-success-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-heading font-bold text-foreground">
+                    Ready to Post Your Donation!
+                  </h3>
+                  <p className="text-sm text-muted-foreground">
+                    Review your details and submit to start helping those in need
+                  </p>
+                </div>
+              </div>
+              
+              <Button
+                variant="success"
+                onClick={handleSubmit}
+                loading={isSubmitting}
+                disabled={isSubmitting || !donationId}
+                iconName="Send"
+                iconPosition="left"
+                className="w-full"
+                size="lg"
+              >
+                {isSubmitting ? 'Posting Food...' : 'Post Food Donation'}
+              </Button>
+              
+              {!donationId && (
+                <p className="mt-3 text-xs text-error text-center">
+                  Please complete Step 1 (Basic Details) before submitting
+                </p>
+              )}
+            </div>
           </div>
         );
         
@@ -430,38 +533,19 @@ const PostSurplusFood = () => {
               iconName="ChevronLeft"
               iconPosition="left"
             >
-              Previous
+              Previous Step
             </Button>
 
-            <div className="flex gap-3">
+            {currentStep < steps?.length && (
               <Button
-                variant="ghost"
-                onClick={() => navigate('/donor-dashboard')}
+                variant="default"
+                onClick={handleNext}
+                iconName="ChevronRight"
+                iconPosition="right"
               >
-                Save as Draft
+                Next Page
               </Button>
-
-              {currentStep < steps?.length ? (
-                <Button
-                  variant="default"
-                  onClick={handleNext}
-                  iconName="ChevronRight"
-                  iconPosition="right"
-                >
-                  Next Step
-                </Button>
-              ) : (
-                <Button
-                  variant="default"
-                  onClick={handleSubmit}
-                  loading={isSubmitting}
-                  iconName="Send"
-                  iconPosition="left"
-                >
-                  {isSubmitting ? 'Posting Food...' : 'Post Food Donation'}
-                </Button>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Help Section */}

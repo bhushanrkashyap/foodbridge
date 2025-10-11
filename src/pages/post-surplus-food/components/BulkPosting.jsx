@@ -11,13 +11,12 @@ const BulkPosting = ({ formData, onFormChange, errors }) => {
 
   const quantityUnits = [
     { value: 'kg', label: 'kg' },
-    { value: 'grams', label: 'g' },
-    { value: 'liters', label: 'L' },
+    { value: 'g', label: 'g' },
+    { value: 'l', label: 'L' },
     { value: 'pieces', label: 'pcs' },
     { value: 'plates', label: 'plates' },
     { value: 'packets', label: 'packets' },
-    { value: 'boxes', label: 'boxes' },
-    { value: 'bags', label: 'bags' }
+    { value: 'boxes', label: 'boxes' }
   ];
 
   const handleInputChange = (field, value) => {

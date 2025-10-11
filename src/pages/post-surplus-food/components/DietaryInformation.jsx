@@ -1,18 +1,19 @@
 import React from 'react';
 import Icon from '../../../components/AppIcon';
+import { supabase } from '../../../supabaseClient';
 
 import Select from '../../../components/ui/Select';
 
-const DietaryInformation = ({ formData, onFormChange, errors }) => {
+const DietaryInformation = ({ formData, onFormChange, donationId, errors }) => {
   const allergenOptions = [
-    { id: 'nuts', label: 'Nuts', icon: 'Nut' },
-    { id: 'dairy', label: 'Dairy', icon: 'Milk' },
-    { id: 'eggs', label: 'Eggs', icon: 'Egg' },
-    { id: 'soy', label: 'Soy', icon: 'Bean' },
-    { id: 'wheat', label: 'Wheat/Gluten', icon: 'Wheat' },
-    { id: 'seafood', label: 'Seafood', icon: 'Fish' },
-    { id: 'sesame', label: 'Sesame', icon: 'Seed' },
-    { id: 'mustard', label: 'Mustard', icon: 'Droplet' }
+    { id: 'Nuts', label: 'Nuts', icon: 'Nut' },
+    { id: 'Dairy', label: 'Dairy', icon: 'Milk' },
+    { id: 'Eggs', label: 'Eggs', icon: 'Egg' },
+    { id: 'Soy', label: 'Soy', icon: 'Bean' },
+    { id: 'Wheat/Gluten', label: 'Wheat/Gluten', icon: 'Wheat' },
+    { id: 'Seafood', label: 'Seafood', icon: 'Fish' },
+    { id: 'Sesame', label: 'Sesame', icon: 'Seed' },
+    { id: 'Mustard', label: 'Mustard', icon: 'Droplet' }
   ];
 
   const spiceLevelOptions = [
@@ -24,17 +25,21 @@ const DietaryInformation = ({ formData, onFormChange, errors }) => {
   ];
 
   const dietaryTypeOptions = [
-    { value: 'vegetarian', label: 'Vegetarian', icon: 'Leaf' },
-    { value: 'vegan', label: 'Vegan', icon: 'Sprout' },
-    { value: 'non-vegetarian', label: 'Non-Vegetarian', icon: 'Beef' },
-    { value: 'eggetarian', label: 'Eggetarian', icon: 'Egg' }
+    { value: 'Vegetarian', label: 'Vegetarian', icon: 'Leaf' },
+    { value: 'Vegan', label: 'Vegan', icon: 'Sprout' },
+    { value: 'Non-Vegetarian', label: 'Non-Vegetarian', icon: 'Beef' },
+    { value: 'Eggetarian', label: 'Eggetarian', icon: 'Egg' }
   ];
 
-  const handleInputChange = (field, value) => {
-    onFormChange({
-      ...formData,
-      [field]: value
-    });
+  const handleInputChange = async (field, value) => {
+    const newData = { ...formData, [field]: value };
+    onFormChange(newData);
+    if (donationId) {
+      await supabase
+        .from('donations')
+        .update({ [field]: value })
+        .eq('id', donationId);
+    }
   };
 
   const handleAllergenToggle = (allergenId) => {
@@ -195,7 +200,7 @@ const DietaryInformation = ({ formData, onFormChange, errors }) => {
         
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <div className={`p-2 rounded text-center text-xs ${
-            formData?.dietaryType === 'vegetarian' || formData?.dietaryType === 'vegan'
+            formData?.dietaryType === 'Vegetarian' || formData?.dietaryType === 'Vegan'
               ? 'bg-green-100 text-green-800' :'bg-muted text-muted-foreground'
           }`}>
             <Icon name="Leaf" size={16} className="mx-auto mb-1" />
@@ -203,14 +208,14 @@ const DietaryInformation = ({ formData, onFormChange, errors }) => {
           </div>
           
           <div className={`p-2 rounded text-center text-xs ${
-            formData?.dietaryType === 'vegan' ?'bg-emerald-100 text-emerald-800' :'bg-muted text-muted-foreground'
+            formData?.dietaryType === 'Vegan' ?'bg-emerald-100 text-emerald-800' :'bg-muted text-muted-foreground'
           }`}>
             <Icon name="Sprout" size={16} className="mx-auto mb-1" />
             Vegan Safe
           </div>
           
           <div className={`p-2 rounded text-center text-xs ${
-            !(formData?.allergens || [])?.includes('wheat')
+            !(formData?.allergens || [])?.includes('Wheat/Gluten')
               ? 'bg-blue-100 text-blue-800' :'bg-muted text-muted-foreground'
           }`}>
             <Icon name="Wheat" size={16} className="mx-auto mb-1" />
