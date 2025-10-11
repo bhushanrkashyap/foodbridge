@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
 import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation';
@@ -7,43 +7,81 @@ import Input from '../../components/ui/Input';
 import Select from '../../components/ui/Select';
 import { Checkbox } from '../../components/ui/Checkbox';
 import Icon from '../../components/AppIcon';
+import { supabase } from '../../supabaseClient';
 
 const SettingsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [userRole] = useState(localStorage.getItem('userRole') || 'donor');
-  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'notifications');
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'account');
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState({ type: '', text: '' });
 
-  const [settings, setSettings] = useState({
-    // Notification Settings
-    emailNotifications: true,
-    pushNotifications: true,
-    smsNotifications: false,
-    weeklyDigest: true,
-    donationAlerts: true,
-    matchAlerts: true,
-    urgentRequests: true,
-    
-    // Privacy Settings
-    profileVisibility: 'public',
-    showLocation: true,
-    showContactInfo: false,
-    showDonationHistory: true,
-    allowDirectMessages: true,
-    
-    // Application Settings
-    language: 'en',
-    timezone: 'America/New_York',
-    theme: 'light',
-    autoSave: true,
-    compactView: false,
-    
-    // Security Settings
-    twoFactorAuth: false,
-    loginAlerts: true,
-    sessionTimeout: 30
+  // Load settings from localStorage on mount
+  const loadSettings = () => {
+    const savedSettings = localStorage.getItem('userSettings');
+    if (savedSettings) {
+      return JSON.parse(savedSettings);
+    }
+    return {
+      // Notification Settings
+      emailNotifications: true,
+      pushNotifications: true,
+      smsNotifications: false,
+      weeklyDigest: true,
+      donationAlerts: true,
+      matchAlerts: true,
+      urgentRequests: true,
+      
+      // Privacy Settings
+      profileVisibility: 'public',
+      showLocation: true,
+      showContactInfo: false,
+      showDonationHistory: true,
+      allowDirectMessages: true,
+      
+      // Application Settings
+      language: 'en',
+      timezone: 'America/New_York',
+      theme: 'light',
+      autoSave: true,
+      compactView: false,
+      
+      // Security Settings
+      twoFactorAuth: false,
+      loginAlerts: true,
+      sessionTimeout: 30
+    };
+  };
+
+  const [settings, setSettings] = useState(loadSettings());
+  
+  // User profile data
+  const [userProfile, setUserProfile] = useState({
+    fullName: localStorage.getItem('userName') || '',
+    email: localStorage.getItem('userEmail') || '',
+    phone: localStorage.getItem('userPhone') || '',
+    organization: localStorage.getItem('userOrganization') || '',
+    address: localStorage.getItem('userAddress') || '',
+    bio: localStorage.getItem('userBio') || ''
   });
+
+  useEffect(() => {
+    // Apply theme setting
+    if (settings.theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (settings.theme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // Auto mode - check system preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, [settings.theme]);
 
   const handleSettingChange = (key, value) => {
     setSettings(prev => ({
@@ -52,24 +90,168 @@ const SettingsPage = () => {
     }));
   };
 
+  const handleProfileChange = (key, value) => {
+    setUserProfile(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
   const handleSave = async () => {
+    setIsSaving(true);
+    setSaveMessage({ type: '', text: '' });
+    
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      // Show success message
-      alert('Settings saved successfully!');
+      // Save settings to localStorage
+      localStorage.setItem('userSettings', JSON.stringify(settings));
+      
+      // Save profile data to localStorage
+      localStorage.setItem('userName', userProfile.fullName);
+      localStorage.setItem('userEmail', userProfile.email);
+      localStorage.setItem('userPhone', userProfile.phone);
+      localStorage.setItem('userOrganization', userProfile.organization);
+      localStorage.setItem('userAddress', userProfile.address);
+      localStorage.setItem('userBio', userProfile.bio);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      setSaveMessage({ type: 'success', text: 'Settings saved successfully!' });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => {
+        setSaveMessage({ type: '', text: '' });
+      }, 3000);
     } catch (error) {
       console.error('Error saving settings:', error);
-      alert('Error saving settings. Please try again.');
+      setSaveMessage({ type: 'error', text: 'Error saving settings. Please try again.' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm(
+      'Are you sure you want to delete your account?\n\nThis action cannot be undone. All your data will be permanently deleted.'
+    );
+    
+    if (confirmed) {
+      const finalConfirm = window.confirm(
+        'This is your final warning!\n\nType your password to confirm account deletion.'
+      );
+      
+      if (finalConfirm) {
+        try {
+          // Sign out from Supabase
+          await supabase.auth.signOut();
+          
+          // Clear all localStorage
+          localStorage.clear();
+          
+          // Navigate to login
+          navigate('/login');
+          
+          alert('Your account has been deleted.');
+        } catch (error) {
+          console.error('Error deleting account:', error);
+          alert('Error deleting account. Please try again.');
+        }
+      }
     }
   };
 
   const tabs = [
+    { id: 'account', label: 'Account', icon: 'User' },
     { id: 'notifications', label: 'Notifications', icon: 'Bell' },
     { id: 'privacy', label: 'Privacy', icon: 'Shield' },
     { id: 'application', label: 'Application', icon: 'Settings' },
     { id: 'security', label: 'Security', icon: 'Lock' }
   ];
+
+  const renderAccountSettings = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-medium text-foreground mb-4">Profile Information</h3>
+        <div className="space-y-4">
+          <Input
+            label="Full Name"
+            type="text"
+            placeholder="Enter your full name"
+            value={userProfile.fullName}
+            onChange={(e) => handleProfileChange('fullName', e.target.value)}
+          />
+          
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="your.email@example.com"
+            value={userProfile.email}
+            onChange={(e) => handleProfileChange('email', e.target.value)}
+            description="Your primary email for notifications and communications"
+          />
+          
+          <Input
+            label="Phone Number"
+            type="tel"
+            placeholder="+1 (555) 000-0000"
+            value={userProfile.phone}
+            onChange={(e) => handleProfileChange('phone', e.target.value)}
+          />
+          
+          <Input
+            label="Organization Name"
+            type="text"
+            placeholder="Your restaurant or NGO name"
+            value={userProfile.organization}
+            onChange={(e) => handleProfileChange('organization', e.target.value)}
+          />
+          
+          <Input
+            label="Address"
+            type="text"
+            placeholder="Street, City, State, ZIP"
+            value={userProfile.address}
+            onChange={(e) => handleProfileChange('address', e.target.value)}
+          />
+          
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-2">
+              Bio / About
+            </label>
+            <textarea
+              placeholder="Tell others about yourself or your organization..."
+              value={userProfile.bio}
+              onChange={(e) => handleProfileChange('bio', e.target.value)}
+              rows={4}
+              className="w-full px-3 py-2 border border-border rounded-lg text-sm transition-smooth resize-none focus:border-primary focus:ring-primary/20 focus:outline-none focus:ring-2"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              This will be visible on your public profile
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="pt-6 border-t border-border">
+        <h3 className="text-lg font-medium text-error mb-4">Danger Zone</h3>
+        <div className="bg-error/5 border border-error/20 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <label className="font-medium text-foreground">Delete Account</label>
+              <p className="text-sm text-muted-foreground">Permanently delete your account and all data</p>
+            </div>
+            <Button 
+              variant="outline"
+              onClick={handleDeleteAccount}
+              className="border-error text-error hover:bg-error hover:text-white"
+            >
+              Delete Account
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderNotificationSettings = () => (
     <div className="space-y-6">
@@ -366,19 +548,36 @@ const SettingsPage = () => {
           <div className="flex items-center justify-between py-3 border border-border rounded-lg px-4">
             <div>
               <label className="font-medium text-foreground">Change Password</label>
-              <p className="text-sm text-muted-foreground">Last changed 3 months ago</p>
+              <p className="text-sm text-muted-foreground">Update your password regularly for security</p>
             </div>
             <Button 
               variant="outline" 
               size="sm"
-              onClick={() => {
+              onClick={async () => {
                 const currentPassword = prompt('Enter your current password:');
                 if (currentPassword) {
-                  const newPassword = prompt('Enter your new password:');
+                  const newPassword = prompt('Enter your new password (minimum 6 characters):');
                   if (newPassword && newPassword.length >= 6) {
                     const confirmPassword = prompt('Confirm your new password:');
                     if (newPassword === confirmPassword) {
-                      alert('Password changed successfully!');
+                      try {
+                        const { error } = await supabase.auth.updateUser({
+                          password: newPassword
+                        });
+                        
+                        if (error) {
+                          alert('Error changing password: ' + error.message);
+                        } else {
+                          alert('Password changed successfully! Please sign in again with your new password.');
+                          // Sign out and redirect to login
+                          await supabase.auth.signOut();
+                          localStorage.clear();
+                          navigate('/login');
+                        }
+                      } catch (err) {
+                        console.error('Password change error:', err);
+                        alert('Error changing password. Please try again.');
+                      }
                     } else {
                       alert('Passwords do not match. Please try again.');
                     }
@@ -430,6 +629,8 @@ const SettingsPage = () => {
 
   const renderTabContent = () => {
     switch (activeTab) {
+      case 'account':
+        return renderAccountSettings();
       case 'notifications':
         return renderNotificationSettings();
       case 'privacy':
@@ -439,7 +640,7 @@ const SettingsPage = () => {
       case 'security':
         return renderSecuritySettings();
       default:
-        return renderNotificationSettings();
+        return renderAccountSettings();
     }
   };
 
@@ -496,14 +697,28 @@ const SettingsPage = () => {
                 <h2 className="text-xl font-semibold text-foreground">
                   {tabs.find(tab => tab.id === activeTab)?.label}
                 </h2>
-                <Button
-                  variant="default"
-                  icon={<Icon name="Save" />}
-                  iconPosition="left"
-                  onClick={handleSave}
-                >
-                  Save Changes
-                </Button>
+                <div className="flex items-center gap-3">
+                  {saveMessage.text && (
+                    <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+                      saveMessage.type === 'success' 
+                        ? 'bg-success/10 text-success' 
+                        : 'bg-error/10 text-error'
+                    }`}>
+                      <Icon name={saveMessage.type === 'success' ? 'Check' : 'AlertCircle'} size={16} />
+                      {saveMessage.text}
+                    </div>
+                  )}
+                  <Button
+                    variant="default"
+                    iconName="Save"
+                    iconPosition="left"
+                    onClick={handleSave}
+                    loading={isSaving}
+                    disabled={isSaving}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Changes'}
+                  </Button>
+                </div>
               </div>
               
               {renderTabContent()}

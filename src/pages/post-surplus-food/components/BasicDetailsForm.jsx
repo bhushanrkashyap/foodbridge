@@ -115,6 +115,8 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
   };
 
   // Only render warning if not fresh
+  const isExpired = analysis && analysis.freshness?.toLowerCase().includes('expired');
+
   if (
     analysis &&
     (
@@ -145,6 +147,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
           error={errors?.foodName}
           required
           className="md:col-span-2"
+          disabled={isExpired}
         />
 
         {/* Food Type */}
@@ -156,6 +159,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
           onChange={(value) => handleInputChange('foodType', value)}
           error={errors?.foodType}
           required
+          disabled={isExpired}
         />
 
         {/* Quantity */}
@@ -169,6 +173,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
             error={errors?.quantity}
             required
             min="1"
+            disabled={isExpired}
           />
           <Select
             label="Unit"
@@ -178,6 +183,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
             onChange={(value) => handleInputChange('quantityUnit', value)}
             error={errors?.quantityUnit}
             required
+            disabled={isExpired}
           />
         </div>
       </div>
@@ -191,6 +197,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
         required
         description="When does this food expire? (DD/MM/YYYY format)"
         min={new Date()?.toISOString()?.slice(0, 16)}
+        disabled={isExpired}
       />
       {/* Initial Description */}
       <div>
@@ -208,6 +215,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
               ? 'border-error focus:border-error focus:ring-error/20' :'border-border focus:border-primary focus:ring-primary/20'
           } focus:outline-none focus:ring-2`}
           required
+          disabled={isExpired}
         />
         {errors?.description && (
           <p className="mt-1 text-xs text-error">{errors?.description}</p>
@@ -226,6 +234,7 @@ const BasicDetailsForm = ({ formData, onFormChange, donationId, errors, analysis
         error={errors?.estimatedServings}
         description="Approximate number of people this food can serve"
         min="1"
+        disabled={isExpired}
       />
       
       {/* Save & Continue Button */}
