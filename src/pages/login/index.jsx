@@ -12,7 +12,7 @@ const LoginPage = () => {
   // Mock credentials for different user roles
   const mockCredentials = {
     'donor@foodbridge.com': { password: 'donor123', role: 'donor', name: 'Restaurant Manager' },
-    'recipient@foodbridge.com': { password: 'Recipient', role: 'recipient', name: 'NGO Coordinator' },
+    'recipient@foodbridge.com': { password: 'recipient123', role: 'recipient', name: 'NGO Coordinator' },
     'admin@foodbridge.com': { password: 'admin123', role: 'admin', name: 'System Admin' }
   };
 
@@ -97,8 +97,7 @@ const LoginPage = () => {
                   <h4 className="font-medium text-foreground text-sm mb-2">Demo Credentials:</h4>
                   <div className="space-y-1 text-xs text-muted-foreground">
                     <div><strong>Donor:</strong> donor@foodbridge.com / donor123</div>
-                    <div><strong>Recipient:</strong> recipient@foodbridge.com / Recipient</div>
-                    <div><strong>Admin:</strong> admin@foodbridge.com / admin123</div>
+                    <div><strong>Recipient:</strong> recipient@foodbridge.com / recipient123</div>
                   </div>
                 </div>
               </div>

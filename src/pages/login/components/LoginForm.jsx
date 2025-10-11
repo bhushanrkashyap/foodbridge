@@ -20,7 +20,7 @@ const LoginForm = ({ onSubmit, loading: externalLoading, error: externalError })
   // Mock credentials for different user roles
   const mockCredentials = {
     'donor@foodbridge.com': { password: 'donor123', role: 'donor', name: 'Restaurant Manager' },
-    'recipient@foodbridge.com': { password: 'Recipient', role: 'recipient', name: 'NGO Coordinator' },
+    'recipient@foodbridge.com': { password: 'recipient123', role: 'recipient', name: 'NGO Coordinator' },
     'admin@foodbridge.com': { password: 'admin123', role: 'admin', name: 'System Admin' }
   };
 
