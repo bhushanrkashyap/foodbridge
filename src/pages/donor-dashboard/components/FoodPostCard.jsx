@@ -90,7 +90,7 @@ const FoodPostCard = ({ post, onViewDetails, onExtendExpiry, onMarkCollected }) 
             <span className="text-foreground font-medium">{post?.location}</span>
           </div>
           <div className="flex items-center space-x-2">
-            <Icon name="Timer" size={14} className="text-muted-foreground" />
+            <Icon name="Clock" size={14} className="text-muted-foreground" />
             <span className="text-foreground font-medium">{formatTimeRemaining(post?.expiryTime)}</span>
           </div>
           <div className="flex items-center space-x-2">

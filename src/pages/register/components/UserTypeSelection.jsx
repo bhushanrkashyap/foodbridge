@@ -4,16 +4,16 @@ import Icon from '../../../components/AppIcon';
 const UserTypeSelection = ({ selectedType, onTypeSelect, className = '' }) => {
   const userTypes = [
     {
-      id: 'restaurant',
-      label: 'Restaurant Manager',
+      id: 'donor',
+      label: 'Donor',
       description: 'Manage surplus food from restaurants, cafes, and food service businesses',
       icon: 'ChefHat',
       features: ['Post surplus food', 'Track donations', 'Manage inventory', 'View impact metrics'],
       color: 'bg-primary/10 border-primary text-primary'
     },
     {
-      id: 'ngo',
-      label: 'NGO Coordinator',
+      id: 'recipient',
+      label: 'Recipient',
       description: 'Coordinate food distribution for NGOs, shelters, and community organizations',
       icon: 'Heart',
       features: ['Browse available food', 'Manage requests', 'Coordinate pickups', 'Track beneficiaries'],

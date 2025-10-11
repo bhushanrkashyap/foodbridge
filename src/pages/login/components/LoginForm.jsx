@@ -4,20 +4,28 @@ import Button from '../../../components/ui/Button';
 import Input from '../../../components/ui/Input';
 import { Checkbox } from '../../../components/ui/Checkbox';
 import Icon from '../../../components/AppIcon';
-import { supabase } from '../../../supabaseClient'; // Adjust path if needed
 
-const LoginForm = () => {
+const LoginForm = ({ onSubmit, loading: externalLoading, error: externalError }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   });
   const [formErrors, setFormErrors] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [showSignUp, setShowSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [internalLoading, setInternalLoading] = useState(false);
+  const [internalError, setInternalError] = useState(null);
   const navigate = useNavigate();
+
+  // Mock credentials for different user roles
+  const mockCredentials = {
+    'donor@foodbridge.com': { password: 'donor123', role: 'donor', name: 'Restaurant Manager' },
+    'recipient@foodbridge.com': { password: 'Recipient', role: 'recipient', name: 'NGO Coordinator' },
+    'admin@foodbridge.com': { password: 'admin123', role: 'admin', name: 'System Admin' }
+  };
+
+  const loading = externalLoading || internalLoading;
+  const error = externalError || internalError;
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e?.target;
@@ -59,60 +67,65 @@ const LoginForm = () => {
     console.log('Forgot password clicked');
   };
 
-  // Supabase login handler
+  // Use parent's onSubmit handler (mock authentication)
   const handleSubmit = async (e) => {
     e?.preventDefault();
-    setError(null);
 
-    if (validateForm()) {
-      setLoading(true);
-      // Authenticate with Supabase Auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password
-      });
-      if (authError) {
-        setError(authError.message);
-        setLoading(false);
-        return;
-      }
-      // Check if user exists in 'users' table
-      const { data: userData, error: userTableError } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', formData.email)
-        .single();
-      if (userTableError || !userData) {
-        setShowSignUp(true);
-        setLoading(false);
-        return;
-      }
-      // User exists, navigate to donor dashboard
-      navigate('/donor-dashboard');
-      setLoading(false);
-    }
-  };
-
-  // Handle sign up and record user in database
-  const handleSignUp = async () => {
-    setLoading(true);
-    // Create user in Supabase Auth
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password
-    });
-    if (signUpError) {
-      setError(signUpError.message);
-      setLoading(false);
+    if (!validateForm()) {
       return;
     }
-    // Insert user into 'users' table
-    await supabase
-      .from('users')
-      .insert([{ email: formData.email, name: '', role: 'donor' }]); // Adjust fields as needed
-    setShowSignUp(false);
-    navigate('/dashboard');
-    setLoading(false);
+
+    // If parent provides onSubmit, use it
+    if (onSubmit) {
+      await onSubmit(formData);
+      return;
+    }
+
+    // Otherwise, handle authentication directly
+    setInternalLoading(true);
+    setInternalError(null);
+
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      const { email, password, rememberMe } = formData;
+      const user = mockCredentials?.[email?.toLowerCase()];
+
+      if (!user || user?.password !== password) {
+        throw new Error('Invalid email or password. Please check your credentials and try again.');
+      }
+
+      // Simulate successful authentication
+      const authToken = `mock_jwt_token_${Date.now()}`;
+      const userData = {
+        id: Math.floor(Math.random() * 1000),
+        email: email,
+        name: user?.name,
+        role: user?.role,
+        verified: true,
+        lastLogin: new Date()?.toISOString()
+      };
+
+      // Store authentication data
+      localStorage.setItem('authToken', authToken);
+      localStorage.setItem('userRole', user?.role);
+      localStorage.setItem('userType', user?.role);
+      localStorage.setItem('userData', JSON.stringify(userData));
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      }
+
+      // Redirect based on user role
+      const dashboardPath = user?.role === 'recipient' ? '/recipient-dashboard' : '/donor-dashboard';
+      navigate(dashboardPath, { replace: true });
+
+    } catch (err) {
+      setInternalError(err?.message);
+    } finally {
+      setInternalLoading(false);
+    }
   };
 
   return (
@@ -202,25 +215,6 @@ const LoginForm = () => {
             {loading ? 'Signing In...' : 'Sign In'}
           </Button>
         </form>
-
-        {/* Show sign up option if user not found */}
-        {showSignUp && (
-          <div className="mt-4 text-center">
-            <p className="text-sm text-muted-foreground mb-2">
-              No account found. Would you like to create one?
-            </p>
-            <Button
-              type="button"
-              variant="primary"
-              fullWidth
-              loading={loading}
-              disabled={loading}
-              onClick={handleSignUp}
-            >
-              {loading ? 'Creating Account...' : 'Sign Up'}
-            </Button>
-          </div>
-        )}
 
         {/* Register Link */}
         <div className="text-center pt-4 border-t border-border">

@@ -1,1 +1,319 @@
-import React, { useState, useEffect } from 'react'; import { useLocation, useNavigate } from 'react-router-dom'; import RoleBasedHeader from '../../components/ui/RoleBasedHeader'; import DashboardNavigation from '../../components/ui/DashboardNavigation'; import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation'; import MetricsCard from './components/MetricsCard'; import FoodPostCard from '../donor-dashboard/components/FoodPostCard'; import FilterControls from '../donor-dashboard/components/FilterControls'; import NotificationPanel from '../donor-dashboard/components/NotificationPanel'; import Icon from '../../components/AppIcon'; import Button from '../../components/ui/Button'; const RecipientDashboard = () => { const location = useLocation(); const navigate = useNavigate(); const [isMenuOpen, setIsMenuOpen] = useState(false); const [selectedPosts, setSelectedPosts] = useState([]); const [currentSection, setCurrentSection] = useState('available'); const [filters, setFilters] = useState({ category: 'all', urgency: 'all', status: 'all', dateRange: 'all', view: 'grid' }); // Mock data for dashboard metrics const metricsData = [ { title: 'Meals Secured This Month', value: '1,247', unit: 'meals', change: '+18%', changeType: 'positive', icon: 'Utensils', color: 'success' }, { title: 'Beneficiaries Served', value: '423', unit: 'people', change: '+12%', changeType: 'positive', icon: 'Users', color: 'primary' }, { title: 'Active Requests', value: '7', unit: 'requests', change: '-2', changeType: 'negative', icon: 'Heart', color: 'warning' }, { title: 'Pickup Success Rate', value: '94', unit: '%', change: '+3%', changeType: 'positive', icon: 'TrendingUp', color: 'accent' } ]; // Available food posts from donors const foodPosts = [ { id: 1, title: 'Fresh Vegetable Curry', description: 'Delicious mixed vegetable curry prepared with fresh seasonal vegetables. Perfect for immediate consumption.', image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400', quantity: '15 servings', location: 'Mumbai Central', category: 'prepared-food', urgency: 'high', status: 'active', expiryTime: new Date(Date.now() + 4 * 60 * 60 * 1000), // 4 hours from now matchCount: 3, postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000) }, { id: 2, title: 'Assorted Bakery Items', description: 'Fresh bread, pastries, and baked goods from our daily production. Includes whole wheat bread and croissants.', image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400', quantity: '25 items', location: 'Bandra West', category: 'bakery', urgency: 'medium', status: 'matched', expiryTime: new Date(Date.now() + 12 * 60 * 60 * 1000), // 12 hours from now matchCount: 1, recipient: { name: 'Hope Foundation', type: 'NGO' }, matchScore: 94, pickupTime: new Date(Date.now() + 6 * 60 * 60 * 1000), postedAt: new Date(Date.now() - 5 * 60 * 60 * 1000) }, { id: 3, title: 'Fresh Fruits & Vegetables', description: 'Seasonal fresh produce including apples, bananas, tomatoes, and leafy greens. All items are in good condition.', image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400', quantity: '30 kg', location: 'Andheri East', category: 'fresh-produce', urgency: 'low', status: 'active', expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now matchCount: 2, postedAt: new Date(Date.now() - 1 * 60 * 60 * 1000) }, { id: 4, title: 'Packaged Rice & Lentils', description: 'Sealed packages of basmati rice and various lentils. Long shelf life and perfect for bulk distribution.', image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400', quantity: '50 kg', location: 'Thane', category: 'packaged-goods', urgency: 'low', status: 'collected', expiryTime: new Date(Date.now() + 72 * 60 * 60 * 1000), // 72 hours from now matchCount: 1, recipient: { name: 'Akshaya Patra', type: 'NGO' }, matchScore: 88, postedAt: new Date(Date.now() - 8 * 60 * 60 * 1000) } ]; // Filter food posts const filteredPosts = foodPosts.filter(post => { if (filters.category !== 'all' && post.category !== filters.category) return false; if (filters.urgency !== 'all' && post.urgency !== filters.urgency) return false; if (filters.status !== 'all' && post.status !== filters.status) return false; return true; }); const handleFilterChange = (filterName, value) => { setFilters(prev => ({ ...prev, [filterName]: value })); }; const handleClearFilters = () => { setFilters({ category: 'all', urgency: 'all', status: 'all', dateRange: 'all', view: 'grid' }); }; const handleBulkAction = (action) => { console.log('Bulk action:', action, selectedPosts); }; const handlePostAction = (action, postId) => { console.log('Post action:', action, postId); }; // Mock notifications data const notifications = [ { id: 1, type: 'new-match', title: 'New Food Available!', message: 'Fresh Vegetable Curry is now available from Green Garden Restaurant. High urgency!', timestamp: new Date(Date.now() - 30 * 60 * 1000), read: false, actionLabel: 'View Food', actionUrl: '/food-details?id=1' }, { id: 2, type: 'pickup', title: 'Pickup Scheduled', message: 'Your pickup for Assorted Bakery Items is scheduled for 11/10/2025 at Hope Foundation', timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), read: false, actionLabel: 'View Details', actionUrl: '/recipient-dashboard?section=accepted' }, { id: 3, type: 'success', title: 'Food Collected', message: 'Successfully collected Packaged Rice & Lentils from Akshaya Patra', timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000), read: true, actionLabel: 'View History', actionUrl: '/recipient-dashboard?section=received' } ]; const handleNotificationAction = (action, notificationId) => { console.log('Notification action:', action, notificationId); }; // Mock data for food matches - keep for other sections const foodMatches = [ { id: 1, donorName: "Green Garden Restaurant", donorType: "Restaurant", foodName: "Fresh Vegetable Curry with Rice", description: "Freshly prepared vegetable curry with basmati rice, suitable for vegetarian diets. Contains onions, tomatoes, mixed vegetables in aromatic spices.", foodImage: "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg", quantity: 25, unit: "portions", estimatedMeals: 25, expiryTime: "4 hours", distance: 2.3, pickupAddress: "MG Road, Bangalore", availableUntil: "6:00 PM today", urgency: "high", compatibilityScore: 94, categories: ["Vegetarian", "Indian", "Prepared Meals"], createdAt: new Date(Date.now() - 1800000) }, { id: 2, donorName: "Fresh Mart Supermarket", donorType: "Supermarket", foodName: "Mixed Fresh Fruits", description: "Assorted fresh fruits including apples, bananas, oranges, and seasonal fruits. All items are approaching best-by date but still fresh and nutritious.", foodImage: "https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg", quantity: 15, unit: "kg", estimatedMeals: 45, expiryTime: "2 days", distance: 5.7, pickupAddress: "Koramangala, Bangalore", availableUntil: "8:00 PM today", urgency: "medium", compatibilityScore: 87, categories: ["Fresh Produce", "Fruits", "Healthy"], createdAt: new Date(Date.now() - 3600000) }, { id: 3, donorName: "Bread & Beyond Bakery", donorType: "Bakery", foodName: "Assorted Bread and Pastries", description: "Fresh bread loaves, dinner rolls, and pastries from today's batch. Perfect for breakfast distribution or meal accompaniments.", foodImage: "https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg", quantity: 40, unit: "pieces", estimatedMeals: 60, expiryTime: "1 day", distance: 3.1, pickupAddress: "Indiranagar, Bangalore", availableUntil: "10:00 PM today", urgency: "low", compatibilityScore: 76, categories: ["Bakery", "Bread", "Breakfast"], createdAt: new Date(Date.now() - 7200000) }, { id: 4, donorName: "Spice Route Catering", donorType: "Catering Service", foodName: "Chicken Biryani with Raita", description: "Aromatic chicken biryani with mint raita and pickles. Prepared for an event with extra portions available. Contains dairy and meat.", foodImage: "https://images.pexels.com/photos/1893556/pexels-photo-1893556.jpeg", quantity: 35, unit: "portions", estimatedMeals: 35, expiryTime: "6 hours", distance: 4.2, pickupAddress: "Whitefield, Bangalore", availableUntil: "9:00 PM today", urgency: "high", compatibilityScore: 82, categories: ["Non-Vegetarian", "Indian", "Prepared Meals"], createdAt: new Date(Date.now() - 900000) } ]; // Mock data for accepted donations const acceptedDonations = [ { id: 101, donorName: "Healthy Bites Cafe", foodName: "Quinoa Salad Bowl", foodImage: "https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg", quantity: 20, unit: "bowls", distance: 1.8, status: "scheduled", scheduledPickup: new Date(Date.now() + 3600000), donorPhone: "+91 98765 43210", assignedVolunteer: { name: "Rajesh Kumar", phone: "+91 87654 32109" } }, { id: 102, donorName: "Corner Bakery", foodName: "Fresh Sandwich Platter", foodImage: "https://images.pexels.com/photos/1775043/pexels-photo-1775043.jpeg", quantity: 30, unit: "pieces", distance: 3.5, status: "in-transit", scheduledPickup: new Date(Date.now() - 1800000), donorPhone: "+91 98765 43211" }, { id: 103, donorName: "Green Grocers", foodName: "Mixed Vegetables", foodImage: "https://images.pexels.com/photos/1132047/pexels-photo-1132047.jpeg", quantity: 12, unit: "kg", distance: 2.1, status: "delivered", deliveredAt: new Date(Date.now() - 86400000), donorPhone: "+91 98765 43212" } ]; // Mock data for emergency requests const emergencyRequests = [ { id: 201, urgencyLevel: "critical", beneficiaryCount: 75, foodTypes: ["prepared-meals", "fresh-produce"], timeframe: "2", pickupRadius: 15, contactPerson: "Priya Sharma", contactPhone: "+91 98765 43213", status: "active", createdAt: new Date(Date.now() - 1800000), responses: [ { donorName: "City Restaurant", quantity: "30 portions" }, { donorName: "Fresh Market", quantity: "10 kg vegetables" } ] } ]; // Get current section from URL params useEffect(() => { const params = new URLSearchParams(location.search); const section = params?.get('section') || 'available'; setCurrentSection(section); }, [location?.search]); // Handle section changes useEffect(() => { const handleSectionChange = (event) => { setCurrentSection(event?.detail?.section); }; window.addEventListener('dashboardSectionChange', handleSectionChange); return () => window.removeEventListener('dashboardSectionChange', handleSectionChange); }, []); const handleMenuToggle = () => { setIsMenuOpen(!isMenuOpen); }; const handleFiltersChange = (newFilters) => { setFilters(newFilters); }; const handleAcceptMatch = (matchId) => { console.log('Accepting match:', matchId); // Handle match acceptance logic }; const handleRejectMatch = (matchId, reason) => { console.log('Rejecting match:', matchId, 'Reason:', reason); // Handle match rejection logic }; const handleSchedulePickup = (donationId) => { console.log('Scheduling pickup for:', donationId); // Handle pickup scheduling logic }; const handleUpdateStatus = (donationId, newStatus) => { console.log('Updating status for:', donationId, 'to:', newStatus); // Handle status update logic }; const handleEmergencyRequest = (requestData) => { console.log('Submitting emergency request:', requestData); // Handle emergency request submission }; const handleSemanticSearch = (query) => { setSearchQuery(query); console.log('Semantic search query:', query); // Handle semantic search logic }; const renderOverviewSection = () => ( <div className="space-y-6"> {/* Metrics Cards */} <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6"> {metricsData?.map((metric, index) => ( <MetricsCard key={index} title={metric?.title} value={metric?.value} unit={metric?.unit} change={metric?.change} changeType={metric?.changeType} icon={metric?.icon} color={metric?.color} /> ))} </div> {/* Quick Actions */} <div className="bg-card border border-border rounded-lg p-6 shadow-soft"> <h3 className="font-heading font-semibold text-foreground mb-4">Quick Actions</h3> <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> <Button variant="outline" iconName="Search" iconPosition="left" onClick={() => setCurrentSection('available')} className="justify-start" > Browse Available Food </Button> <Button variant="outline" iconName="AlertTriangle" iconPosition="left" onClick={() => setCurrentSection('emergency')} className="justify-start" > Emergency Request </Button> <Button variant="outline" iconName="Calendar" iconPosition="left" onClick={() => setCurrentSection('requests')} className="justify-start" > Manage Pickups </Button> </div> </div> {/* Recent Activity */} <div className="bg-card border border-border rounded-lg shadow-soft"> <div className="p-6 border-b border-border"> <h3 className="font-heading font-semibold text-foreground">Recent Activity</h3> </div> <div className="divide-y divide-border"> <div className="p-4 flex items-center space-x-3"> <div className="w-8 h-8 bg-success/10 rounded-full flex items-center justify-center"> <Icon name="CheckCircle" size={16} className="text-success" /> </div> <div className="flex-1"> <p className="text-sm text-foreground">Successfully picked up 25 portions from Green Garden Restaurant</p> <p className="text-xs text-muted-foreground">2 hours ago</p> </div> </div> <div className="p-4 flex items-center space-x-3"> <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center"> <Icon name="Heart" size={16} className="text-primary" /> </div> <div className="flex-1"> <p className="text-sm text-foreground">New food match available: Fresh Fruit Basket</p> <p className="text-xs text-muted-foreground">4 hours ago</p> </div> </div> <div className="p-4 flex items-center space-x-3"> <div className="w-8 h-8 bg-warning/10 rounded-full flex items-center justify-center"> <Icon name="AlertTriangle" size={16} className="text-warning" /> </div> <div className="flex-1"> <p className="text-sm text-foreground">Emergency request fulfilled by 2 donors</p> <p className="text-xs text-muted-foreground">6 hours ago</p> </div> </div> </div> </div> </div> ); const renderAvailableFoodSection = () => ( <div className="space-y-6"> {/* Active Food Posts Section */} <div className="space-y-6"> <div className="flex items-center justify-between"> <h2 className="text-2xl font-heading font-bold text-foreground"> Active Food Posts </h2> </div> <FilterControls filters={filters} onFilterChange={handleFilterChange} onClearFilters={handleClearFilters} onBulkAction={handleBulkAction} selectedPosts={selectedPosts} totalPosts={filteredPosts?.length} /> <div className={grid gap-6 ${ filters?.view === 'grid' ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' : 'grid-cols-1' }}> {filteredPosts?.map(post => ( <FoodPostCard key={post?.id} post={post} onViewDetails={(id) => navigate(/food-details?id=${id})} onExtendExpiry={(id) => handlePostAction('extend', id)} onMarkCollected={(id) => handlePostAction('collected', id)} /> ))} </div> {filteredPosts?.length === 0 && ( <div className="text-center py-12"> <Icon name="Package" size={48} className="text-muted-foreground mx-auto mb-4" /> <h3 className="text-lg font-heading font-semibold text-foreground mb-2"> No food available </h3> <p className="text-muted-foreground mb-4"> Try adjusting your filters to see more options. </p> </div> )} </div> {/* Recent Posts Section */} <div className="space-y-4"> <div className="flex items-center justify-between"> <h2 className="text-2xl font-heading font-bold text-foreground"> Recent Posts </h2> <Button variant="ghost" iconName="ArrowRight" iconPosition="right" onClick={() => navigate('/recipient-dashboard?section=available')} > View All </Button> </div> <div className="grid grid-cols-1 md:grid-cols-2 gap-6"> {foodPosts.slice(0, 2).map(post => ( <FoodPostCard key={post?.id} post={post} onViewDetails={(id) => navigate(/food-details?id=${id})} onExtendExpiry={(id) => handlePostAction('extend', id)} onMarkCollected={(id) => handlePostAction('collected', id)} /> ))} </div> </div> {/* Notifications Section */} <div className="space-y-4"> <h2 className="text-2xl font-heading font-bold text-foreground"> Notifications </h2> <NotificationPanel notifications={notifications} onMarkAsRead={(id) => handleNotificationAction('markRead', id)} onMarkAllAsRead={() => handleNotificationAction('markAllRead')} /> </div> </div> ); const renderRequestsSection = () => ( <div className="grid grid-cols-1 lg:grid-cols-2 gap-6"> <AcceptedDonationsPanel donations={acceptedDonations} onSchedulePickup={handleSchedulePickup} onUpdateStatus={handleUpdateStatus} /> <EmergencyRequestPanel onSubmitRequest={handleEmergencyRequest} activeRequests={emergencyRequests} /> </div> ); const renderReceivedSection = () => ( <div className="bg-card border border-border rounded-lg shadow-soft"> <div className="p-6 border-b border-border"> <h3 className="font-heading font-semibold text-foreground">Donation History</h3> </div> <div className="p-6"> <div className="text-center py-12"> <Icon name="Package" size={48} className="mx-auto text-muted-foreground mb-4" /> <h4 className="font-heading font-medium text-foreground mb-2">Received Donations</h4> <p className="text-sm text-muted-foreground"> Your completed donation history will appear here. </p> </div> </div> </div> ); const renderCurrentSection = () => { switch (currentSection) { case 'overview': return renderOverviewSection(); case 'requests': return renderRequestsSection(); case 'received': return renderReceivedSection(); case 'available': default: return renderAvailableFoodSection(); } }; return ( <div className="min-h-screen bg-background"> {/* Header */} <RoleBasedHeader userRole="recipient" isMenuOpen={isMenuOpen} onMenuToggle={handleMenuToggle} /> <div className="flex pt-16"> {/* Sidebar Navigation */} <DashboardNavigation userRole="recipient" /> {/* Main Content */} <main className="flex-1 lg:ml-64"> <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8"> {/* Breadcrumb */} <BreadcrumbNavigation userRole="recipient" className="mb-6" /> {/* Page Header */} <div className="mb-8"> <h1 className="text-3xl font-heading font-bold text-foreground mb-2"> Recipient Dashboard </h1> <p className="text-muted-foreground"> Discover available food donations and coordinate pickups for your beneficiaries </p> </div> {/* Dashboard Content */} {renderCurrentSection()} </div> </main> </div> </div> ); }; export default RecipientDashboard;
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
+import DashboardNavigation from '../../components/ui/DashboardNavigation';
+import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation';
+import FilterBar from './components/FilterBar';
+import ActiveFoodPosts from './components/ActiveFoodPosts';
+import RecentPosts from './components/RecentPosts';
+import MetricsCard from '../donor-dashboard/components/MetricsCard';
+
+/**
+ * RecipientDashboard - Main recipient dashboard with filtering and pagination
+ * Mirrors donor dashboard UX with recipient-specific features
+ */
+const RecipientDashboard = () => {
+  const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState({
+    search: '',
+    category: 'all',
+    urgency: 'all',
+    status: 'all',
+    startDate: '',
+    endDate: '',
+    view: 'grid'
+  });
+  const [currentPage, setCurrentPage] = useState(0);
+  const pageSize = 12;
+
+  // Mock data - in production, this would come from Supabase
+  // Using the same structure as donor-dashboard
+  const allFoodPosts = [
+    {
+      id: 1,
+      title: 'Fresh Vegetable Curry',
+      description: 'Delicious mixed vegetable curry prepared with fresh seasonal vegetables. Perfect for immediate consumption.',
+      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
+      quantity: '15 servings',
+      location: 'Mumbai Central',
+      category: 'prepared-food',
+      urgency: 'high',
+      status: 'active',
+      expiryTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
+      matchCount: 3,
+      postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
+    },
+    {
+      id: 2,
+      title: 'Assorted Bakery Items',
+      description: 'Fresh bread, pastries, and baked goods from our daily production.',
+      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400',
+      quantity: '25 items',
+      location: 'Bandra West',
+      category: 'bakery',
+      urgency: 'medium',
+      status: 'active',
+      expiryTime: new Date(Date.now() + 12 * 60 * 60 * 1000),
+      matchCount: 1,
+      postedAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
+    },
+    {
+      id: 3,
+      title: 'Fresh Fruits & Vegetables',
+      description: 'Seasonal fresh produce including apples, bananas, tomatoes, and leafy greens.',
+      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400',
+      quantity: '30 kg',
+      location: 'Andheri East',
+      category: 'fresh-produce',
+      urgency: 'low',
+      status: 'active',
+      expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      matchCount: 2,
+      postedAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
+    },
+    {
+      id: 4,
+      title: 'Packaged Rice & Lentils',
+      description: 'Sealed packages of basmati rice and various lentils.',
+      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
+      quantity: '50 kg',
+      location: 'Thane',
+      category: 'packaged-goods',
+      urgency: 'low',
+      status: 'collected',
+      expiryTime: new Date(Date.now() + 72 * 60 * 60 * 1000),
+      matchCount: 1,
+      postedAt: new Date(Date.now() - 8 * 60 * 60 * 1000)
+    },
+    // Add more mock posts for pagination testing
+    ...Array.from({ length: 20 }, (_, i) => ({
+      id: i + 5,
+      title: `Food Item ${i + 5}`,
+      description: `Description for food item ${i + 5}`,
+      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
+      quantity: `${10 + i} servings`,
+      location: ['Mumbai', 'Pune', 'Delhi', 'Bangalore'][i % 4],
+      category: ['prepared-food', 'fresh-produce', 'bakery', 'packaged-goods'][i % 4],
+      urgency: ['high', 'medium', 'low'][i % 3],
+      status: ['active', 'matched', 'collected'][i % 3],
+      expiryTime: new Date(Date.now() + (i + 1) * 60 * 60 * 1000),
+      matchCount: i % 3,
+      postedAt: new Date(Date.now() - (i + 1) * 60 * 60 * 1000)
+    }))
+  ];
+
+  // Metrics data
+  const metricsData = [
+    {
+      title: 'Meals Secured This Month',
+      value: '1,247',
+      unit: 'meals',
+      change: '+18',
+      changeType: 'increase',
+      icon: 'Utensils',
+      color: 'success'
+    },
+    {
+      title: 'Beneficiaries Served',
+      value: '423',
+      unit: 'people',
+      change: '+12',
+      changeType: 'increase',
+      icon: 'Users',
+      color: 'primary'
+    },
+    {
+      title: 'Active Requests',
+      value: '7',
+      unit: 'requests',
+      change: '-2',
+      changeType: 'decrease',
+      icon: 'Heart',
+      color: 'warning'
+    },
+    {
+      title: 'Pickup Success Rate',
+      value: '94',
+      unit: '%',
+      change: '+3',
+      changeType: 'increase',
+      icon: 'TrendingUp',
+      color: 'accent'
+    }
+  ];
+
+  // Apply filters to posts
+  const getFilteredPosts = () => {
+    return allFoodPosts.filter(post => {
+      // Search filter
+      if (filters.search) {
+        const searchLower = filters.search.toLowerCase();
+        const matchesSearch = 
+          post.title.toLowerCase().includes(searchLower) ||
+          post.description.toLowerCase().includes(searchLower) ||
+          post.location.toLowerCase().includes(searchLower);
+        if (!matchesSearch) return false;
+      }
+
+      // Category filter
+      if (filters.category !== 'all' && post.category !== filters.category) {
+        return false;
+      }
+
+      // Urgency filter
+      if (filters.urgency !== 'all' && post.urgency !== filters.urgency) {
+        return false;
+      }
+
+      // Status filter
+      if (filters.status !== 'all' && post.status !== filters.status) {
+        return false;
+      }
+
+      // Date range filter
+      if (filters.startDate) {
+        const postDate = new Date(post.postedAt);
+        const startDate = new Date(filters.startDate);
+        if (postDate < startDate) return false;
+      }
+
+      if (filters.endDate) {
+        const postDate = new Date(post.postedAt);
+        const endDate = new Date(filters.endDate);
+        endDate.setHours(23, 59, 59, 999); // End of day
+        if (postDate > endDate) return false;
+      }
+
+      return true;
+    });
+  };
+
+  const filteredPosts = getFilteredPosts();
+  const totalPages = Math.ceil(filteredPosts.length / pageSize);
+  const paginatedPosts = filteredPosts.slice(
+    currentPage * pageSize,
+    (currentPage + 1) * pageSize
+  );
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+  }, [filters]);
+
+  // Simulate loading
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [filters, currentPage]);
+
+  const handleFilterChange = (newFilters) => {
+    setFilters(newFilters);
+  };
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleViewDetails = (postId) => {
+    navigate(`/food-details?id=${postId}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <RoleBasedHeader
+        userRole="recipient"
+        isMenuOpen={isMenuOpen}
+        onMenuToggle={() => setIsMenuOpen(!isMenuOpen)}
+      />
+
+      <div className="flex pt-16">
+        {/* Sidebar Navigation */}
+        <DashboardNavigation userRole="recipient" />
+
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-64">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Breadcrumb */}
+            <BreadcrumbNavigation userRole="recipient" className="mb-6" />
+
+            {/* Page Header */}
+            <div className="mb-8">
+              <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
+                Recipient Dashboard
+              </h1>
+              <p className="text-muted-foreground">
+                Discover available food donations and coordinate pickups for your beneficiaries
+              </p>
+            </div>
+
+            {/* Metrics Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              {metricsData.map((metric, index) => (
+                <MetricsCard
+                  key={index}
+                  title={metric.title}
+                  value={metric.value}
+                  unit={metric.unit}
+                  change={metric.change}
+                  changeType={metric.changeType}
+                  icon={metric.icon}
+                  color={metric.color}
+                />
+              ))}
+            </div>
+
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              {/* Left Column - Filters & Active Posts */}
+              <div className="lg:col-span-3 space-y-6">
+                {/* Filter Bar */}
+                <FilterBar
+                  onFilterChange={handleFilterChange}
+                  initialFilters={filters}
+                />
+
+                {/* Active Food Posts */}
+                <div>
+                  <h2 className="text-2xl font-heading font-bold text-foreground mb-4">
+                    Active Food Posts
+                  </h2>
+                  <ActiveFoodPosts
+                    posts={paginatedPosts}
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    pageSize={pageSize}
+                    totalCount={filteredPosts.length}
+                    loading={loading}
+                    onPageChange={handlePageChange}
+                    onViewDetails={handleViewDetails}
+                    viewMode={filters.view}
+                  />
+                </div>
+              </div>
+
+              {/* Right Column - Recent Posts Sidebar */}
+              <aside className="lg:col-span-1">
+                <div className="sticky top-24 space-y-6">
+                  <RecentPosts
+                    posts={allFoodPosts.sort((a, b) => b.postedAt - a.postedAt)}
+                    loading={loading}
+                    limit={10}
+                  />
+                </div>
+              </aside>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+};
+
+export default RecipientDashboard;

@@ -122,7 +122,7 @@ const Register = () => {
         break;
 
       case 3:
-        if (formData?.userType === 'restaurant') {
+        if (formData?.userType === 'donor' || formData?.userType === 'restaurant') {
           if (!formData?.organizationName?.trim()) {
             newErrors.organizationName = 'Restaurant name is required';
           }
@@ -132,7 +132,7 @@ const Register = () => {
           if (!formData?.licenseNumber?.trim()) {
             newErrors.licenseNumber = 'FSSAI license number is required';
           }
-        } else if (formData?.userType === 'ngo') {
+        } else if (formData?.userType === 'recipient' || formData?.userType === 'ngo') {
           if (!formData?.organizationName?.trim()) {
             newErrors.organizationName = 'Organization name is required';
           }
@@ -206,13 +206,16 @@ const Register = () => {
       // Mock registration success
       console.log('Registration data:', formData);
       
+      // Store user type in localStorage for role-based routing
+      localStorage.setItem('userType', formData?.userType);
+      
       // Show success message and redirect
       alert(`Account created successfully! Welcome to FoodBridge.\n\nMock credentials for testing:\nEmail: ${mockCredentials?.[formData?.userType]?.email}\nPassword: ${mockCredentials?.[formData?.userType]?.password}`);
       
       // Redirect based on user type
-      if (formData?.userType === 'restaurant') {
+      if (formData?.userType === 'donor' || formData?.userType === 'restaurant') {
         navigate('/donor-dashboard');
-      } else if (formData?.userType === 'ngo') {
+      } else if (formData?.userType === 'recipient' || formData?.userType === 'ngo') {
         navigate('/recipient-dashboard');
       } else {
         navigate('/donor-dashboard');
