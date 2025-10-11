@@ -18,6 +18,7 @@ import ImpactPage from './pages/impact';
 import HelpCenterPage from './pages/help-center';
 import ContactPage from './pages/contact';
 import PrivacyPolicyPage from './pages/privacy-policy';
+import TeamPage from './pages/team';
 
 const Routes = () => {
   return (
@@ -32,6 +33,7 @@ const Routes = () => {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/how-it-works" element={<HowItWorksPage />} />
         <Route path="/impact" element={<ImpactPage />} />
+        <Route path="/team" element={<TeamPage />} />
         <Route path="/help-center" element={<HelpCenterPage />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />

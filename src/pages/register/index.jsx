@@ -4,13 +4,10 @@ import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
 import Button from '../../components/ui/Button';
 import Icon from '../../components/AppIcon';
 
-// Import all components
+// Import only needed components
 import UserTypeSelection from './components/UserTypeSelection';
 import BasicInfoForm from './components/BasicInfoForm';
-import OrganizationDetailsForm from './components/OrganizationDetailsForm';
-import DocumentUploadForm from './components/DocumentUploadForm';
 import TrustSignalsSection from './components/TrustSignalsSection';
-import TermsAndPrivacySection from './components/TermsAndPrivacySection';
 import ProgressIndicator from './components/ProgressIndicator';
 
 const Register = () => {
@@ -25,42 +22,11 @@ const Register = () => {
     email: '',
     phone: '',
     password: '',
-    confirmPassword: '',
-    organizationName: '',
-    businessType: '',
-    organizationType: '',
-    licenseNumber: '',
-    registrationNumber: '',
-    beneficiariesCount: '',
-    availability: '',
-    transportation: '',
-    city: '',
-    state: '',
-    address: '',
-    pincode: '',
-    operatingHoursFrom: '',
-    operatingHoursTo: '',
-    acceptTerms: false,
-    acceptMarketing: false,
-    acceptNewsletter: false
+    confirmPassword: ''
   });
 
   const [errors, setErrors] = useState({});
-  const totalSteps = 5;
-
-  // Mock credentials for testing
-  const mockCredentials = {
-    restaurant: {
-      email: "restaurant@foodbridge.com",
-      password: "Restaurant123!",
-      phone: "9876543210"
-    },
-    ngo: {
-      email: "ngo@foodbridge.com", 
-      password: "NGO123!",
-      phone: "9876543211"
-    }
-  };
+  const totalSteps = 2;
 
   useEffect(() => {
     // Set page title
@@ -121,59 +87,6 @@ const Register = () => {
         }
         break;
 
-      case 3:
-        if (formData?.userType === 'donor' || formData?.userType === 'restaurant') {
-          if (!formData?.organizationName?.trim()) {
-            newErrors.organizationName = 'Restaurant name is required';
-          }
-          if (!formData?.businessType) {
-            newErrors.businessType = 'Please select restaurant type';
-          }
-          if (!formData?.licenseNumber?.trim()) {
-            newErrors.licenseNumber = 'FSSAI license number is required';
-          }
-        } else if (formData?.userType === 'recipient' || formData?.userType === 'ngo') {
-          if (!formData?.organizationName?.trim()) {
-            newErrors.organizationName = 'Organization name is required';
-          }
-          if (!formData?.organizationType) {
-            newErrors.organizationType = 'Please select organization type';
-          }
-          if (!formData?.registrationNumber?.trim()) {
-            newErrors.registrationNumber = 'Registration number is required';
-          }
-          if (!formData?.beneficiariesCount) {
-            newErrors.beneficiariesCount = 'Number of beneficiaries is required';
-          }
-        }
-        
-        // Common address validation
-        if (!formData?.city?.trim()) {
-          newErrors.city = 'City is required';
-        }
-        if (!formData?.state) {
-          newErrors.state = 'Please select state';
-        }
-        if (!formData?.address?.trim()) {
-          newErrors.address = 'Complete address is required';
-        }
-        if (!formData?.pincode?.trim()) {
-          newErrors.pincode = 'Pincode is required';
-        } else if (!/^\d{6}$/?.test(formData?.pincode)) {
-          newErrors.pincode = 'Please enter a valid 6-digit pincode';
-        }
-        break;
-
-      case 4:
-        // Document validation would be handled in DocumentUploadForm
-        break;
-
-      case 5:
-        if (!formData?.acceptTerms) {
-          newErrors.acceptTerms = 'You must accept the Terms of Service to continue';
-        }
-        break;
-
       default:
         break;
     }
@@ -184,7 +97,12 @@ const Register = () => {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      if (currentStep === 2) {
+        // Last step, submit the form
+        handleSubmit();
+      } else {
+        setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+      }
     }
   };
 
@@ -193,33 +111,34 @@ const Register = () => {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
     setIsSubmitting(true);
     
     try {
       // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Mock registration success
-      console.log('Registration data:', formData);
+      // Mock registration success - create auth token and user data
+      const authToken = `mock_jwt_token_${Date.now()}`;
+      const userRole = formData?.userType === 'donor' ? 'donor' : 'recipient';
+      const userData = {
+        id: Math.floor(Math.random() * 1000),
+        email: formData?.email,
+        name: formData?.fullName,
+        role: userRole,
+        phone: formData?.phone,
+        verified: true,
+        createdAt: new Date()?.toISOString()
+      };
       
-      // Store user type in localStorage for role-based routing
-      localStorage.setItem('userType', formData?.userType);
-      
-      // Show success message and redirect
-      alert(`Account created successfully! Welcome to FoodBridge.\n\nMock credentials for testing:\nEmail: ${mockCredentials?.[formData?.userType]?.email}\nPassword: ${mockCredentials?.[formData?.userType]?.password}`);
+      // Store authentication data
+      localStorage.setItem('authToken', authToken);
+      localStorage.setItem('userRole', userRole);
+      localStorage.setItem('userType', userRole);
+      localStorage.setItem('userData', JSON.stringify(userData));
       
       // Redirect based on user type
-      if (formData?.userType === 'donor' || formData?.userType === 'restaurant') {
-        navigate('/donor-dashboard');
-      } else if (formData?.userType === 'recipient' || formData?.userType === 'ngo') {
-        navigate('/recipient-dashboard');
-      } else {
-        navigate('/donor-dashboard');
-      }
+      const dashboardPath = userRole === 'recipient' ? '/recipient-dashboard' : '/donor-dashboard';
+      navigate(dashboardPath, { replace: true });
       
     } catch (error) {
       console.error('Registration error:', error);
@@ -245,37 +164,6 @@ const Register = () => {
             formData={formData}
             onFormChange={handleFormChange}
             errors={errors}
-          />
-        );
-
-      case 3:
-        return (
-          <OrganizationDetailsForm
-            userType={formData?.userType}
-            formData={formData}
-            onFormChange={handleFormChange}
-            errors={errors}
-          />
-        );
-
-      case 4:
-        return (
-          <DocumentUploadForm
-            userType={formData?.userType}
-            formData={formData}
-            onFormChange={handleFormChange}
-            errors={errors}
-          />
-        );
-
-      case 5:
-        return (
-          <TermsAndPrivacySection
-            formData={formData}
-            onFormChange={handleFormChange}
-            errors={errors}
-            onSubmit={handleSubmit}
-            isSubmitting={isSubmitting}
           />
         );
 
@@ -308,33 +196,33 @@ const Register = () => {
                 {renderStepContent()}
 
                 {/* Navigation Buttons */}
-                {currentStep < 5 && (
-                  <div className="flex items-center justify-between pt-8 border-t border-border">
-                    <Button
-                      variant="outline"
-                      onClick={handlePrevious}
-                      disabled={currentStep === 1}
-                      iconName="ChevronLeft"
-                      iconPosition="left"
-                    >
-                      Previous
-                    </Button>
+                <div className="flex items-center justify-between pt-8 border-t border-border">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentStep === 1 || isSubmitting}
+                    iconName="ChevronLeft"
+                    iconPosition="left"
+                  >
+                    Previous
+                  </Button>
 
-                    <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                      <Icon name="Save" size={14} />
-                      <span>Progress auto-saved</span>
-                    </div>
-
-                    <Button
-                      variant="default"
-                      onClick={handleNext}
-                      iconName="ChevronRight"
-                      iconPosition="right"
-                    >
-                      Next Step
-                    </Button>
+                  <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                    <Icon name="Save" size={14} />
+                    <span>Progress auto-saved</span>
                   </div>
-                )}
+
+                  <Button
+                    variant="default"
+                    onClick={handleNext}
+                    loading={isSubmitting}
+                    disabled={isSubmitting}
+                    iconName={currentStep === 2 ? "CheckCircle" : "ChevronRight"}
+                    iconPosition="right"
+                  >
+                    {currentStep === 2 ? (isSubmitting ? 'Creating Account...' : 'Create Account') : 'Next Step'}
+                  </Button>
+                </div>
 
                 {/* Error Display */}
                 {errors?.submit && (

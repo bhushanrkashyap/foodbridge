@@ -150,15 +150,16 @@ const AboutPage = () => {
             >
               Learn Our Story
             </Button>
-            <Button
-              variant="outline"
-              size="lg"
-              icon={<Icon name="Users" />}
-              iconPosition="left"
-              onClick={() => setActiveSection('team')}
-            >
-              Meet the Team
-            </Button>
+            <Link to="/team">
+              <Button
+                variant="outline"
+                size="lg"
+                icon={<Icon name="Users" />}
+                iconPosition="left"
+              >
+                Meet the Team
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

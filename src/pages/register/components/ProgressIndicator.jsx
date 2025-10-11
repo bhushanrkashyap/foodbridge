@@ -5,20 +5,8 @@ const ProgressIndicator = ({ currentStep, totalSteps, userType, className = '' }
   const getStepLabels = () => {
     const baseSteps = [
       { id: 1, label: 'User Type', icon: 'UserCheck' },
-      { id: 2, label: 'Basic Info', icon: 'User' },
-      { id: 3, label: 'Organization', icon: 'Building' },
-      { id: 4, label: 'Documents', icon: 'FileText' },
-      { id: 5, label: 'Terms', icon: 'Shield' }
+      { id: 2, label: 'Basic Info', icon: 'User' }
     ];
-
-    // Customize step 3 label based on user type
-    if (userType === 'restaurant') {
-      baseSteps[2].label = 'Restaurant';
-      baseSteps[2].icon = 'ChefHat';
-    } else if (userType === 'ngo') {
-      baseSteps[2].label = 'Organization';
-      baseSteps[2].icon = 'Heart';
-    }
 
     return baseSteps;
   };

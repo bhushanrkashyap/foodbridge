@@ -98,16 +98,16 @@ const TrustSignalsSection = ({ className = '' }) => {
           Join India's Leading Food Waste Reduction Platform
         </h3>
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {stats?.map((stat) => (
             <div key={stat?.label} className="text-center">
               <div className={`w-12 h-12 rounded-lg bg-muted flex items-center justify-center mx-auto mb-2`}>
                 <Icon name={stat?.icon} size={20} className={stat?.color} />
               </div>
-              <div className={`text-2xl font-heading font-bold ${stat?.color}`}>
+              <div className={`text-xl sm:text-2xl font-heading font-bold ${stat?.color} leading-tight`}>
                 {stat?.value}
               </div>
-              <div className="text-xs text-muted-foreground">
+              <div className="text-xs text-muted-foreground mt-1 leading-tight">
                 {stat?.label}
               </div>
             </div>
@@ -120,13 +120,13 @@ const TrustSignalsSection = ({ className = '' }) => {
           Trusted & Certified Platform
         </h3>
         
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 gap-4">
           {certifications?.map((cert) => (
             <div key={cert?.id} className="text-center p-3 rounded-lg hover:bg-muted/50 transition-colors">
               <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center mx-auto mb-2">
                 <Icon name={cert?.icon} size={18} className="text-primary" />
               </div>
-              <div className="font-medium text-sm text-foreground">
+              <div className="font-medium text-sm text-foreground leading-tight">
                 {cert?.name}
               </div>
               <div className="text-xs text-muted-foreground">
