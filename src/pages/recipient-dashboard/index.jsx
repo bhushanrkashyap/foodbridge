@@ -6,16 +6,23 @@ import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation';
 import FilterBar from './components/FilterBar';
 import ActiveFoodPosts from './components/ActiveFoodPosts';
 import MetricsCard from '../donor-dashboard/components/MetricsCard';
+import DatabaseDebugger from '../../components/DatabaseDebugger';
+import { supabase } from '../../supabaseClient';
+import { findOptimalDonations } from '../../utils/nearestNeighborMatcher';
 
 /**
- * RecipientDashboard - Main recipient dashboard with filtering and pagination
- * Mirrors donor dashboard UX with recipient-specific features
+ * RecipientDashboard - Main recipient dashboard with AI-based nearest neighbor matching
+ * Shows donations ranked by distance and expiry urgency
  */
 const RecipientDashboard = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [allFoodPosts, setAllFoodPosts] = useState([]);
+  const [recipientLocation, setRecipientLocation] = useState(null);
+  const [optimizationStatus, setOptimizationStatus] = useState('Getting your location...');
+  const [sortingStrategy, setSortingStrategy] = useState('distance'); // 'balanced', 'distance', or 'urgency'
   const [filters, setFilters] = useState({
     search: '',
     category: 'all',
@@ -37,81 +44,210 @@ const RecipientDashboard = () => {
   // Get current section from URL
   const currentSection = searchParams.get('section') || 'overview';
 
-  // Mock data - in production, this would come from Supabase
-  // Using the same structure as donor-dashboard
-  const allFoodPosts = [
-    {
-      id: 1,
-      title: 'Fresh Vegetable Curry',
-      description: 'Delicious mixed vegetable curry prepared with fresh seasonal vegetables. Perfect for immediate consumption.',
-      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
-      quantity: '15 servings',
-      location: 'Mumbai Central',
-      category: 'prepared-food',
-      urgency: 'high',
-      status: 'active',
-      expiryTime: new Date(Date.now() + 4 * 60 * 60 * 1000),
-      matchCount: 3,
-      postedAt: new Date(Date.now() - 2 * 60 * 60 * 1000)
-    },
-    {
-      id: 2,
-      title: 'Assorted Bakery Items',
-      description: 'Fresh bread, pastries, and baked goods from our daily production.',
-      image: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=400',
-      quantity: '25 items',
-      location: 'Bandra West',
-      category: 'bakery',
-      urgency: 'medium',
-      status: 'active',
-      expiryTime: new Date(Date.now() + 12 * 60 * 60 * 1000),
-      matchCount: 1,
-      postedAt: new Date(Date.now() - 5 * 60 * 60 * 1000)
-    },
-    {
-      id: 3,
-      title: 'Fresh Fruits & Vegetables',
-      description: 'Seasonal fresh produce including apples, bananas, tomatoes, and leafy greens.',
-      image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400',
-      quantity: '30 kg',
-      location: 'Andheri East',
-      category: 'fresh-produce',
-      urgency: 'low',
-      status: 'active',
-      expiryTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      matchCount: 2,
-      postedAt: new Date(Date.now() - 1 * 60 * 60 * 1000)
-    },
-    {
-      id: 4,
-      title: 'Packaged Rice & Lentils',
-      description: 'Sealed packages of basmati rice and various lentils.',
-      image: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=400',
-      quantity: '50 kg',
-      location: 'Thane',
-      category: 'packaged-goods',
-      urgency: 'low',
-      status: 'collected',
-      expiryTime: new Date(Date.now() + 72 * 60 * 60 * 1000),
-      matchCount: 1,
-      postedAt: new Date(Date.now() - 8 * 60 * 60 * 1000)
-    },
-    // Add more mock posts for pagination testing
-    ...Array.from({ length: 20 }, (_, i) => ({
-      id: i + 5,
-      title: `Food Item ${i + 5}`,
-      description: `Description for food item ${i + 5}`,
-      image: 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
-      quantity: `${10 + i} servings`,
-      location: ['Mumbai', 'Pune', 'Delhi', 'Bangalore'][i % 4],
-      category: ['prepared-food', 'fresh-produce', 'bakery', 'packaged-goods'][i % 4],
-      urgency: ['high', 'medium', 'low'][i % 3],
-      status: ['active', 'matched', 'collected'][i % 3],
-      expiryTime: new Date(Date.now() + (i + 1) * 60 * 60 * 1000),
-      matchCount: i % 3,
-      postedAt: new Date(Date.now() - (i + 1) * 60 * 60 * 1000)
-    }))
-  ];
+  // Get recipient's location first
+  useEffect(() => {
+    getCurrentLocation();
+    // Also fetch donations immediately (will optimize when location arrives)
+    fetchAndOptimizeDonations();
+  }, []);
+
+  // Re-fetch and re-optimize when location becomes available
+  useEffect(() => {
+    if (recipientLocation) {
+      console.log('🔄 Location obtained, re-fetching with AI optimization...');
+      fetchAndOptimizeDonations();
+    }
+  }, [recipientLocation]);
+
+  const getCurrentLocation = () => {
+    setOptimizationStatus('🌍 Getting your location...');
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          setRecipientLocation(location);
+          console.log('✅ Recipient location obtained:', location);
+          setOptimizationStatus('🤖 Running AI optimization...');
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          // Use default location (Bangalore) if geolocation fails
+          const defaultLocation = { lat: 12.9716, lng: 77.5946 };
+          setRecipientLocation(defaultLocation);
+          setOptimizationStatus('📍 Using default location, running AI optimization...');
+        }
+      );
+    } else {
+      // Fallback to default location
+      const defaultLocation = { lat: 12.9716, lng: 77.5946 };
+      setRecipientLocation(defaultLocation);
+      setOptimizationStatus('📍 Using default location, running AI optimization...');
+    }
+  };
+
+  const fetchAndOptimizeDonations = async () => {
+    setLoading(true);
+    try {
+      console.log('=== RECIPIENT DASHBOARD: Starting fetch ===');
+      console.log('Recipient Location:', recipientLocation);
+      
+      // STEP 1: First fetch ALL donations from database (show immediately)
+      console.log('� Fetching all donations from database...');
+      const { data: allDonations, error: fetchError } = await supabase
+        .from('donations')
+        .select('*')
+        .eq('status', 'successful')
+        .order('created_at', { ascending: false });
+
+      if (fetchError) {
+        console.error('❌ Error fetching donations:', fetchError);
+        setOptimizationStatus('❌ Error loading donations');
+        setLoading(false);
+        return;
+      }
+
+      console.log(`✅ Found ${allDonations?.length || 0} donations in database`);
+
+      if (!allDonations || allDonations.length === 0) {
+        console.log('⚠️ No donations found with status="successful"');
+        setOptimizationStatus('📋 No active donations available');
+        setAllFoodPosts([]);
+        setLoading(false);
+        return;
+      }
+
+      // STEP 2: Try to optimize with AI (if recipient location available)
+      let donationsToShow = allDonations;
+      
+      if (recipientLocation) {
+        console.log('🤖 Running AI optimization with recipient location...');
+        console.log(`   Strategy: ${sortingStrategy.toUpperCase()}`);
+        setOptimizationStatus('🔍 Finding nearest donations with AI...');
+        
+        try {
+          const rankedDonations = await findOptimalDonations(recipientLocation, sortingStrategy);
+          
+          if (rankedDonations && rankedDonations.length > 0) {
+            console.log(`✅ AI returned ${rankedDonations.length} ranked donations`);
+            donationsToShow = rankedDonations;
+            
+            const withLocation = rankedDonations.filter(d => d.priorityScore !== null).length;
+            const withoutLocation = rankedDonations.filter(d => d.priorityScore === null).length;
+            
+            const strategyLabel = sortingStrategy === 'distance' ? '📍 Distance-First' : 
+                                 sortingStrategy === 'urgency' ? '⏰ Urgency-First' : 
+                                 '⚖️ Balanced';
+            
+            setOptimizationStatus(
+              `✅ ${strategyLabel}: ${rankedDonations.length} donations | ` +
+              `${withLocation} ranked${withoutLocation > 0 ? `, ${withoutLocation} no GPS` : ''}`
+            );
+          } else {
+            console.log('⚠️ AI returned no results, showing unoptimized donations');
+            setOptimizationStatus(`📋 Showing ${allDonations.length} donations (AI optimization unavailable)`);
+            donationsToShow = allDonations.map(donation => ({
+              ...donation,
+              distance: null,
+              priorityScore: null,
+              urgencyScore: null,
+              travelTimeMinutes: null,
+              timeUntilExpiryMinutes: null
+            }));
+          }
+        } catch (aiError) {
+          console.error('⚠️ AI optimization error:', aiError);
+          setOptimizationStatus(`📋 Showing ${allDonations.length} donations (AI optimization failed)`);
+          donationsToShow = allDonations.map(donation => ({
+            ...donation,
+            distance: null,
+            priorityScore: null,
+            urgencyScore: null,
+            travelTimeMinutes: null,
+            timeUntilExpiryMinutes: null
+          }));
+        }
+      } else {
+        console.log('📍 No recipient location yet, showing unoptimized donations');
+        setOptimizationStatus(`📋 Showing ${allDonations.length} donations (waiting for location...)`);
+        donationsToShow = allDonations.map(donation => ({
+          ...donation,
+          distance: null,
+          priorityScore: null,
+          urgencyScore: null,
+          travelTimeMinutes: null,
+          timeUntilExpiryMinutes: null
+        }));
+      }
+
+      // Transform donations to UI format
+      const transformedPosts = donationsToShow.map(donation => {
+        console.log(`📦 Transforming donation ${donation.id}:`, {
+          food_name: donation.food_name,
+          distance: donation.distance,
+          priorityScore: donation.priorityScore,
+          feasibility: donation.feasibility,
+          pickup_latitude: donation.pickup_latitude,
+          pickup_longitude: donation.pickup_longitude,
+          donorLocation: donation.donorLocation
+        });
+
+        return {
+          id: donation.id,
+          title: donation.food_name || 'Untitled Food',
+          description: donation.description || 'No description available',
+          image: donation.image_url || 'https://images.unsplash.com/photo-1565299624946-b28f40a0ca4b?w=400',
+          quantity: `${donation.quantity || 0} ${donation.unit || 'servings'}`,
+          location: donation.pickup_city || donation.pickup_state || 'Location not specified',
+          category: donation.food_type || 'other',
+          urgency: donation.urgency_level || 'medium',
+          status: 'active',
+          expiryTime: donation.expiry_datetime ? new Date(donation.expiry_datetime) : new Date(Date.now() + 24 * 60 * 60 * 1000),
+          matchCount: 0,
+          postedAt: donation.created_at ? new Date(donation.created_at) : new Date(),
+          // AI optimization data (may be null if not optimized)
+          distance: donation.distance !== undefined ? donation.distance : null,
+          priorityScore: donation.priorityScore !== undefined ? donation.priorityScore : null,
+          urgencyScore: donation.urgencyScore !== undefined ? donation.urgencyScore : null,
+          travelTimeMinutes: donation.feasibility?.travelTimeMinutes !== undefined ? donation.feasibility.travelTimeMinutes : null,
+          timeUntilExpiryMinutes: donation.feasibility?.timeUntilExpiryMinutes !== undefined ? donation.feasibility.timeUntilExpiryMinutes : null,
+          // Additional details
+          estimatedServings: donation.estimated_servings,
+          dietaryType: donation.dietary_type,
+          spiceLevel: donation.spice_level,
+          allergens: donation.allergens || [],
+          pickupAddress: {
+            street: donation.pickup_street_address,
+            area: donation.pickup_area,
+            city: donation.pickup_city,
+            state: donation.pickup_state,
+            pincode: donation.pickup_pin_code,
+            latitude: donation.donorLocation?.lat || donation.pickup_latitude || null,
+            longitude: donation.donorLocation?.lng || donation.pickup_longitude || null
+          },
+          pickupInstructions: donation.pickup_instructions,
+          preferredPickupTime: donation.preferred_pickup_time,
+          contactPerson: donation.contact_person_name || donation.contact_person,
+          contactPhone: donation.contact_phone,
+          donationReason: donation.donation_reason,
+          urgencyNotes: donation.urgency_notes,
+          categories: donation.categories || []
+        };
+      });
+
+      console.log(`✅ Transformed ${transformedPosts.length} posts for UI`);
+      console.log('Sample transformed post:', transformedPosts[0]);
+
+      setAllFoodPosts(transformedPosts);
+    } catch (error) {
+      console.error('Error in fetchAndOptimizeDonations:', error);
+      setOptimizationStatus('❌ Error optimizing donations');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Metrics data
   const metricsData = [
@@ -211,9 +347,8 @@ const RecipientDashboard = () => {
     setCurrentPage(0);
   }, [filters]);
 
-  // Simulate loading
+  // Refresh data when page loads
   useEffect(() => {
-    setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
     }, 500);
@@ -291,6 +426,9 @@ const RecipientDashboard = () => {
             {/* Breadcrumb */}
             <BreadcrumbNavigation userRole="recipient" className="mb-6" />
 
+            {/* Database Debugger - TEMPORARY */}
+            <DatabaseDebugger />
+
             {/* Page Header */}
             <div ref={overviewRef} className="mb-8">
               <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
@@ -299,6 +437,45 @@ const RecipientDashboard = () => {
               <p className="text-muted-foreground">
                 Discover available food donations and coordinate pickups for your beneficiaries
               </p>
+              
+              {/* AI Optimization Status */}
+              {recipientLocation && (
+                <div className="mt-4 bg-primary/10 border border-primary/20 rounded-lg p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center space-x-3 flex-1">
+                      <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-xl">🤖</span>
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-sm font-semibold text-foreground">AI-Powered Matching Active</h3>
+                        <p className="text-xs text-muted-foreground">{optimizationStatus}</p>
+                        <p className="text-xs text-primary font-medium mt-1">
+                          Location: {recipientLocation.lat.toFixed(4)}°, {recipientLocation.lng.toFixed(4)}°
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Sorting Strategy Selector */}
+                    <div className="ml-4">
+                      <label className="text-xs font-medium text-foreground block mb-1">
+                        Sort By:
+                      </label>
+                      <select
+                        value={sortingStrategy}
+                        onChange={(e) => {
+                          setSortingStrategy(e.target.value);
+                          fetchAndOptimizeDonations();
+                        }}
+                        className="px-3 py-1.5 text-xs border border-primary/30 rounded bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="distance">📍 Nearest First</option>
+                        <option value="urgency">⏰ Expiring Soon</option>
+                        <option value="balanced">⚖️ Balanced</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Metrics Cards */}

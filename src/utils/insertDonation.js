@@ -73,6 +73,8 @@ function mapDonationData(formData, item = null) {
     pickup_area: formData.pickupAddress?.area || null,
     pickup_city: formData.pickupAddress?.city || '',
     pickup_pin_code: formData.pickupAddress?.pincode || '',
+    pickup_latitude: formData.pickupAddress?.latitude || null,
+    pickup_longitude: formData.pickupAddress?.longitude || null,
     pickup_instructions: formData.pickupInstructions || null,
     contact_person_name: formData.contactPerson || '',
     contact_phone: formData.contactPhone || '',

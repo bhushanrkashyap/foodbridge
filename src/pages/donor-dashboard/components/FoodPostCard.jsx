@@ -97,6 +97,40 @@ const FoodPostCard = ({ post, onViewDetails, onExtendExpiry, onMarkCollected }) 
             <Icon name="Tag" size={14} className="text-muted-foreground" />
             <span className="text-foreground font-medium">{post?.category}</span>
           </div>
+          
+          {/* AI Optimization Data - Only show if available */}
+          {post?.distance !== undefined && post?.distance !== null && !isNaN(post.distance) && (
+            <>
+              <div className="flex items-center space-x-2 col-span-2 pt-2 border-t border-border">
+                <Icon name="Navigation" size={14} className="text-primary" />
+                <span className="text-primary font-semibold">{Number(post.distance).toFixed(2)} km away</span>
+                {post?.travelTimeMinutes && (
+                  <span className="text-xs text-muted-foreground">• {post.travelTimeMinutes} min travel</span>
+                )}
+              </div>
+              {post?.priorityScore !== undefined && post?.priorityScore !== null && (
+                <div className="flex items-center space-x-2 col-span-2">
+                  <Icon name="TrendingUp" size={14} className="text-success" />
+                  <span className="text-success font-semibold">Priority: {Number(post.priorityScore).toFixed(1)}</span>
+                  {post?.timeUntilExpiryMinutes && (
+                    <span className="text-xs text-muted-foreground">
+                      ({post.timeUntilExpiryMinutes} min left)
+                    </span>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+          
+          {/* Show message if location data is missing */}
+          {(post?.distance === undefined || post?.distance === null || isNaN(post.distance)) && (
+            <div className="flex items-center space-x-2 col-span-2 pt-2 border-t border-border">
+              <Icon name="MapPin" size={14} className="text-muted-foreground" />
+              <span className="text-xs text-muted-foreground italic">
+                📍 Click 'View Details' to calculate distance & feasibility
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Match Info */}
@@ -128,17 +162,6 @@ const FoodPostCard = ({ post, onViewDetails, onExtendExpiry, onMarkCollected }) 
           >
             View Details
           </Button>
-          
-          {post?.status === 'active' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              iconName="Clock"
-              onClick={() => onExtendExpiry(post?.id)}
-            >
-              Extend
-            </Button>
-          )}
           
           {post?.status === 'matched' && (
             <Button
