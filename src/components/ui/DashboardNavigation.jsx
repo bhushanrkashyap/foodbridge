@@ -86,8 +86,8 @@ const DashboardNavigation = ({ userRole = 'donor', className = '' }) => {
 
   return (
     <nav className={`dashboard-navigation ${className}`}>
-      {/* Desktop Sidebar Navigation */}
-      <div className="hidden lg:block w-64 bg-card border-r border-border h-full">
+      {/* Desktop Sidebar Navigation - Fixed/Sticky */}
+      <div className="hidden lg:block w-64 bg-card border-r border-border fixed left-0 top-16 bottom-0 overflow-y-auto z-30">
         <div className="p-6">
           <h2 className="text-lg font-heading font-semibold text-foreground mb-6">
             {userRole === 'donor' ? 'Donor Hub' : 'Recipient Hub'}

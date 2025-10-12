@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import RoleBasedHeader from '../../components/ui/RoleBasedHeader';
 import DashboardNavigation from '../../components/ui/DashboardNavigation';
 import BreadcrumbNavigation from '../../components/ui/BreadcrumbNavigation';
 import FilterBar from './components/FilterBar';
 import ActiveFoodPosts from './components/ActiveFoodPosts';
-import RecentPosts from './components/RecentPosts';
 import MetricsCard from '../donor-dashboard/components/MetricsCard';
 
 /**
@@ -14,6 +13,7 @@ import MetricsCard from '../donor-dashboard/components/MetricsCard';
  */
 const RecipientDashboard = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -27,6 +27,15 @@ const RecipientDashboard = () => {
   });
   const [currentPage, setCurrentPage] = useState(0);
   const pageSize = 12;
+
+  // Refs for scrolling to sections
+  const overviewRef = useRef(null);
+  const availableFoodRef = useRef(null);
+  const requestsRef = useRef(null);
+  const receivedRef = useRef(null);
+
+  // Get current section from URL
+  const currentSection = searchParams.get('section') || 'overview';
 
   // Mock data - in production, this would come from Supabase
   // Using the same structure as donor-dashboard
@@ -211,6 +220,45 @@ const RecipientDashboard = () => {
     return () => clearTimeout(timer);
   }, [filters, currentPage]);
 
+  // Handle section navigation and scrolling
+  useEffect(() => {
+    const scrollToSection = () => {
+      let targetRef = null;
+      
+      switch (currentSection) {
+        case 'overview':
+          targetRef = overviewRef;
+          break;
+        case 'available':
+          targetRef = availableFoodRef;
+          break;
+        case 'requests':
+          targetRef = requestsRef;
+          break;
+        case 'received':
+          targetRef = receivedRef;
+          break;
+        default:
+          targetRef = overviewRef;
+      }
+
+      if (targetRef?.current) {
+        const offset = 100; // Offset for header
+        const elementPosition = targetRef.current.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - offset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    };
+
+    // Small delay to ensure content is rendered
+    const timer = setTimeout(scrollToSection, 100);
+    return () => clearTimeout(timer);
+  }, [currentSection]);
+
   const handleFilterChange = (newFilters) => {
     setFilters(newFilters);
   };
@@ -244,7 +292,7 @@ const RecipientDashboard = () => {
             <BreadcrumbNavigation userRole="recipient" className="mb-6" />
 
             {/* Page Header */}
-            <div className="mb-8">
+            <div ref={overviewRef} className="mb-8">
               <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
                 Recipient Dashboard
               </h1>
@@ -269,20 +317,20 @@ const RecipientDashboard = () => {
               ))}
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-              {/* Left Column - Filters & Active Posts */}
-              <div className="lg:col-span-3 space-y-6">
+            {/* Main Content - Full Width */}
+            <div className="space-y-6">
+              {/* Available Food Section */}
+              <div ref={availableFoodRef}>
                 {/* Filter Bar */}
                 <FilterBar
                   onFilterChange={handleFilterChange}
                   initialFilters={filters}
                 />
 
-                {/* Active Food Posts */}
+                {/* Available Food Posts */}
                 <div>
                   <h2 className="text-2xl font-heading font-bold text-foreground mb-4">
-                    Active Food Posts
+                    Available Food Posts
                   </h2>
                   <ActiveFoodPosts
                     posts={paginatedPosts}
@@ -298,16 +346,35 @@ const RecipientDashboard = () => {
                 </div>
               </div>
 
-              {/* Right Column - Recent Posts Sidebar */}
-              <aside className="lg:col-span-1">
-                <div className="sticky top-24 space-y-6">
-                  <RecentPosts
-                    posts={allFoodPosts.sort((a, b) => b.postedAt - a.postedAt)}
-                    loading={loading}
-                    limit={10}
-                  />
+              {/* My Requests Section - Placeholder */}
+              <div ref={requestsRef} className="pt-8">
+                <div className="bg-card rounded-lg p-8 border border-border text-center">
+                  <h2 className="text-2xl font-heading font-bold text-foreground mb-4">
+                    My Requests
+                  </h2>
+                  <p className="text-muted-foreground mb-4">
+                    Track your food requests and their status
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This section is coming soon
+                  </p>
                 </div>
-              </aside>
+              </div>
+
+              {/* Received Section - Placeholder */}
+              <div ref={receivedRef} className="pt-8">
+                <div className="bg-card rounded-lg p-8 border border-border text-center">
+                  <h2 className="text-2xl font-heading font-bold text-foreground mb-4">
+                    Received Donations
+                  </h2>
+                  <p className="text-muted-foreground mb-4">
+                    View your completed donations and impact
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    This section is coming soon
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </main>

@@ -20,7 +20,7 @@ const RoleBasedHeader = ({ userRole = 'donor', isMenuOpen = false, onMenuToggle 
       case 'recipient':
         return {
           title: 'Recipient Dashboard',
-          primaryAction: { label: 'Find Food', path: '/recipient-dashboard', icon: 'Search' },
+          primaryAction: { label: 'Find Food', path: '/recipient-dashboard?section=available', icon: 'Search' },
           dashboardPath: '/recipient-dashboard'
         };
       default:
